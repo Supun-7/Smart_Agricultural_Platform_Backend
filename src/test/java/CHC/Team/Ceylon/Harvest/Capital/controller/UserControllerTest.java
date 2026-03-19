@@ -1,6 +1,8 @@
 package CHC.Team.Ceylon.Harvest.Capital.controller;
 
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
+import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
+import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,9 +21,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
@@ -35,7 +37,7 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        jwtUtil = new JwtUtil();
+        jwtUtil = new JwtUtil("MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=", 3600000L);
         UserController userController = new UserController(userService, jwtUtil);
         mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
         objectMapper = new ObjectMapper();
@@ -43,8 +45,14 @@ class UserControllerTest {
 
     @Test
     void registerUser_shouldReturnSavedUser() throws Exception {
-        User request = buildUser(1L, "Sachith QA", "qa@example.com", "plain-password", "QA");
-        when(userService.registerUser(any(User.class))).thenReturn(request);
+        UserController.RegisterRequest request = new UserController.RegisterRequest();
+        request.setFullName("Sachith QA");
+        request.setEmail("qa@example.com");
+        request.setPassword("plain-password");
+        request.setRole("FARMER");
+
+        User savedUser = buildUser(1L, "Sachith QA", "qa@example.com", "plain-password", Role.FARMER);
+        when(userService.registerUser(any(User.class))).thenReturn(savedUser);
 
         mockMvc.perform(post("/api/users/register")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -53,12 +61,13 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.userId").value(1))
                 .andExpect(jsonPath("$.fullName").value("Sachith QA"))
                 .andExpect(jsonPath("$.email").value("qa@example.com"))
-                .andExpect(jsonPath("$.role").value("QA"));
+                .andExpect(jsonPath("$.role").value("FARMER"))
+                .andExpect(jsonPath("$.verificationStatus").value("NOT_SUBMITTED"));
     }
 
     @Test
     void loginUser_withValidCredentials_shouldReturnTokenAndUser() throws Exception {
-        User user = buildUser(10L, "Test User", "user@example.com", "secret123", "FARMER");
+        User user = buildUser(10L, "Test User", "user@example.com", "secret123", Role.FARMER);
         UserController.LoginRequest loginRequest = new UserController.LoginRequest();
         loginRequest.setEmail("user@example.com");
         loginRequest.setPassword("secret123");
@@ -71,7 +80,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").isString())
                 .andExpect(jsonPath("$.user.userId").value(10))
-                .andExpect(jsonPath("$.user.role").value("FARMER"));
+                .andExpect(jsonPath("$.user.role").value("FARMER"))
+                .andExpect(jsonPath("$.user.verificationStatus").value("NOT_SUBMITTED"));
     }
 
     @Test
@@ -95,13 +105,14 @@ class UserControllerTest {
                 .andExpect(content().string("JWT is working. You are authenticated."));
     }
 
-    private User buildUser(Long id, String fullName, String email, String passwordHash, String role) {
+    private User buildUser(Long id, String fullName, String email, String passwordHash, Role role) {
         User user = new User();
         user.setUserId(id);
         user.setFullName(fullName);
         user.setEmail(email);
         user.setPasswordHash(passwordHash);
         user.setRole(role);
+        user.setVerificationStatus(VerificationStatus.NOT_SUBMITTED);
         return user;
     }
 }

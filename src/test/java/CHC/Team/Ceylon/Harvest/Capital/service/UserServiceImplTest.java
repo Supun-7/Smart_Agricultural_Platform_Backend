@@ -1,6 +1,8 @@
 package CHC.Team.Ceylon.Harvest.Capital.service;
 
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
+import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
+import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,18 +31,18 @@ class UserServiceImplTest {
 
     @Test
     void registerUser_shouldSaveUser() {
-        User user = buildUser(1L, "QA User", "qa@example.com", "pw123", "QA");
+        User user = buildUser(1L, "QA User", "qa@example.com", "pw123", Role.FARMER);
         when(userRepository.save(any(User.class))).thenReturn(user);
 
         User savedUser = userService.registerUser(user);
 
         assertEquals("qa@example.com", savedUser.getEmail());
-        assertEquals("QA", savedUser.getRole());
+        assertEquals(Role.FARMER, savedUser.getRole());
     }
 
     @Test
     void login_shouldReturnUserWhenPasswordMatches() {
-        User user = buildUser(5L, "Login User", "login@example.com", "secret", "ADMIN");
+        User user = buildUser(5L, "Login User", "login@example.com", "secret", Role.ADMIN);
         when(userRepository.findByEmail("login@example.com")).thenReturn(Optional.of(user));
 
         Optional<User> result = userService.login("login@example.com", "secret");
@@ -51,7 +53,7 @@ class UserServiceImplTest {
 
     @Test
     void login_shouldReturnEmptyWhenPasswordDoesNotMatch() {
-        User user = buildUser(5L, "Login User", "login@example.com", "secret", "ADMIN");
+        User user = buildUser(5L, "Login User", "login@example.com", "secret", Role.ADMIN);
         when(userRepository.findByEmail("login@example.com")).thenReturn(Optional.of(user));
 
         Optional<User> result = userService.login("login@example.com", "wrong");
@@ -68,13 +70,14 @@ class UserServiceImplTest {
         assertTrue(result.isEmpty());
     }
 
-    private User buildUser(Long id, String fullName, String email, String passwordHash, String role) {
+    private User buildUser(Long id, String fullName, String email, String passwordHash, Role role) {
         User user = new User();
         user.setUserId(id);
         user.setFullName(fullName);
         user.setEmail(email);
         user.setPasswordHash(passwordHash);
         user.setRole(role);
+        user.setVerificationStatus(VerificationStatus.NOT_SUBMITTED);
         return user;
     }
 }
