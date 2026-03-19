@@ -9,7 +9,6 @@ import CHC.Team.Ceylon.Harvest.Capital.entity.Project;
 import CHC.Team.Ceylon.Harvest.Capital.exception.FarmerDashboardException;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerRepository;
-import CHC.Team.Ceylon.Harvest.Capital.repository.InvestmentRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,17 +22,14 @@ import java.util.Optional;
 public class FarmerDashboardServiceImpl implements FarmerDashboardService {
 
     private final ProjectRepository projectRepository;
-    private final InvestmentRepository investmentRepository;
     private final FarmerRepository farmerRepository;
     private final FarmerApplicationRepository farmerApplicationRepository;
 
     public FarmerDashboardServiceImpl(
             ProjectRepository projectRepository,
-            InvestmentRepository investmentRepository,
             FarmerRepository farmerRepository,
             FarmerApplicationRepository farmerApplicationRepository) {
         this.projectRepository = projectRepository;
-        this.investmentRepository = investmentRepository;
         this.farmerRepository = farmerRepository;
         this.farmerApplicationRepository = farmerApplicationRepository;
     }
@@ -77,11 +73,6 @@ public class FarmerDashboardServiceImpl implements FarmerDashboardService {
     }
 
     private BigDecimal resolveInvestmentAmount(Project project) {
-        Double summedInvestment = investmentRepository.sumAmountByProjectId(project.getId());
-        if (summedInvestment != null && summedInvestment > 0) {
-            return toBigDecimal(summedInvestment);
-        }
-
         return toBigDecimal(project.getCurrentAmount());
     }
 

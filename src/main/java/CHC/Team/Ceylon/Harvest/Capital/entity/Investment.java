@@ -1,41 +1,73 @@
 package CHC.Team.Ceylon.Harvest.Capital.entity;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "investments")
 public class Investment {
 
+    public enum InvestmentStatus {
+        PENDING,
+        ACTIVE,
+        COMPLETED,
+        CANCELLED
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+    @Column(name = "investment_id")
+    private Long investmentId;
 
-    @Column(name = "amount")
-    private Double amount;
+    @Column(name = "amount_invested")
+    private BigDecimal amountInvested;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status")
+    private InvestmentStatus status;
+
+    @Column(name = "investment_date")
+    private LocalDateTime investmentDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "investor_id")
     private User investor;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id")
-    private Project project;
+    @JoinColumn(name = "land_id")
+    private Land land;
 
-    public Long getId() {
-        return id;
+    public Long getInvestmentId() {
+        return investmentId;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setInvestmentId(Long investmentId) {
+        this.investmentId = investmentId;
     }
 
-    public Double getAmount() {
-        return amount;
+    public BigDecimal getAmountInvested() {
+        return amountInvested;
     }
 
-    public void setAmount(Double amount) {
-        this.amount = amount;
+    public void setAmountInvested(BigDecimal amountInvested) {
+        this.amountInvested = amountInvested;
+    }
+
+    public InvestmentStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(InvestmentStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getInvestmentDate() {
+        return investmentDate;
+    }
+
+    public void setInvestmentDate(LocalDateTime investmentDate) {
+        this.investmentDate = investmentDate;
     }
 
     public User getInvestor() {
@@ -46,11 +78,11 @@ public class Investment {
         this.investor = investor;
     }
 
-    public Project getProject() {
-        return project;
+    public Land getLand() {
+        return land;
     }
 
-    public void setProject(Project project) {
-        this.project = project;
+    public void setLand(Land land) {
+        this.land = land;
     }
 }

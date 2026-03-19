@@ -8,10 +8,10 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,14 +22,17 @@ public class InvestorController {
         private final UserRepository userRepository;
         private final KycSubmissionRepository kycSubmissionRepository;
         private final JwtUtil jwtUtil;
+        private final InvestorDashboardService dashboardService;
 
         public InvestorController(
                         UserRepository userRepository,
                         KycSubmissionRepository kycSubmissionRepository,
-                        JwtUtil jwtUtil) {
+                        JwtUtil jwtUtil,
+                        InvestorDashboardService dashboardService) {
                 this.userRepository = userRepository;
                 this.kycSubmissionRepository = kycSubmissionRepository;
                 this.jwtUtil = jwtUtil;
+                this.dashboardService = dashboardService;
         }
 
         private Long extractUserId(String authHeader) {
@@ -37,10 +40,12 @@ public class InvestorController {
                 return Long.parseLong(jwtUtil.extractUserId(token));
         }
 
+        // ── GET /api/investor/profile ──────────────────────────────────────────
         @GetMapping("/profile")
         @RequiredRole(Role.INVESTOR)
         public ResponseEntity<?> getInvestorProfile(
                         @RequestHeader("Authorization") String authHeader) {
+
                 Long userId = extractUserId(authHeader);
                 User user = userRepository.findById(userId)
                                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -57,17 +62,27 @@ public class InvestorController {
                                                 .orElse("NOT_SUBMITTED")));
         }
 
-        // ── Submit KYC — now accepts full form data ───────────────
+        // ── GET /api/investor/dashboard (AC-1) ───────────────────────────────
+        @GetMapping("/dashboard")
+        @RequiredRole(Role.INVESTOR)
+        public ResponseEntity<?> getDashboard(
+                        @RequestHeader("Authorization") String authHeader) {
+
+                Long userId = extractUserId(authHeader);
+                return ResponseEntity.ok(dashboardService.getDashboard(userId));
+        }
+
+        // ── POST /api/investor/kyc ─────────────────────────────────────────────
         @PostMapping("/kyc")
         @RequiredRole(Role.INVESTOR)
         public ResponseEntity<?> submitKyc(
                         @RequestHeader("Authorization") String authHeader,
                         @RequestBody KycRequest request) {
+
                 Long userId = extractUserId(authHeader);
                 User user = userRepository.findById(userId)
                                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-                // Block if already pending or approved
                 var existing = kycSubmissionRepository
                                 .findTopByUserUserIdOrderBySubmittedAtDesc(userId);
 
@@ -80,35 +95,10 @@ public class InvestorController {
                         }
                 }
 
-                // Build KYC submission from full form data
                 KycSubmission kyc = new KycSubmission();
                 kyc.setUser(user);
-
-                // Personal details
-                kyc.setTitle(request.title());
-                kyc.setFirstName(request.firstName());
-                kyc.setLastName(request.lastName());
-
-                kyc.setAge(request.age());
-                if (request.age() != null && request.age() < 18) {
-                        return ResponseEntity.badRequest().body(Map.of(
-                                        "error", "You must be at least 18 years old to register as an investor"));
-                }
-
-                kyc.setNationality(request.nationality());
-                kyc.setCurrentOccupation(request.currentOccupation());
-                kyc.setAddress(request.address());
-                kyc.setIdType(request.idType());
-                kyc.setIdNumber(request.idNumber());
-
-                // Document URLs from Supabase Storage
-                kyc.setIdFrontUrl(request.idFrontUrl());
-                kyc.setIdBackUrl(request.idBackUrl());
-                kyc.setUtilityBillUrl(request.utilityBillUrl());
-                kyc.setBankStmtUrl(request.bankStmtUrl());
-
+                kyc.setDocumentUrl(request.documentUrl());
                 kyc.setStatus(VerificationStatus.PENDING);
-
                 kycSubmissionRepository.save(kyc);
 
                 return ResponseEntity.ok(Map.of(
@@ -116,51 +106,35 @@ public class InvestorController {
                                 "status", "PENDING"));
         }
 
+        // ── GET /api/investor/opportunities ───────────────────────────────────
         @GetMapping("/opportunities")
         @RequiredRole(Role.INVESTOR)
         public ResponseEntity<?> getInvestmentOpportunities() {
-                return ResponseEntity.ok(Map.of(
-                                "message", "Investment opportunities",
-                                "opportunities", List.of()));
+                // AC-6: real data from DB — no mock List.of()
+                return ResponseEntity.ok(dashboardService.getOpportunities());
         }
 
+        // ── GET /api/investor/portfolio ────────────────────────────────────────
         @GetMapping("/portfolio")
         @RequiredRole(Role.INVESTOR)
         public ResponseEntity<?> getPortfolio(
                         @RequestHeader("Authorization") String authHeader) {
+                // AC-6: real data from DB — no mock List.of()
                 Long userId = extractUserId(authHeader);
-                return ResponseEntity.ok(Map.of(
-                                "message", "Portfolio for investor " + userId,
-                                "investments", List.of()));
+                return ResponseEntity.ok(dashboardService.getPortfolio(userId));
         }
 
+        // ── GET /api/investor/reports ──────────────────────────────────────────
         @GetMapping("/reports")
         @RequiredRole(Role.INVESTOR)
         public ResponseEntity<?> getFinancialReports(
                         @RequestHeader("Authorization") String authHeader) {
+                // AC-6: real data from DB — no mock List.of()
                 Long userId = extractUserId(authHeader);
-                return ResponseEntity.ok(Map.of(
-                                "message", "Financial reports for investor " + userId,
-                                "reports", List.of()));
+                return ResponseEntity.ok(dashboardService.getReports(userId));
         }
 
-        // ── Full KYC request DTO ──────────────────────────────────
-        public record KycRequest(
-                        // Personal details
-                        String title,
-                        String firstName,
-                        String lastName,
-                        Integer age,
-                        String nationality,
-                        String currentOccupation,
-                        String address,
-                        String idType,
-                        String idNumber,
-
-                        // Document URLs — uploaded to Supabase Storage by frontend
-                        String idFrontUrl,
-                        String idBackUrl,
-                        String utilityBillUrl,
-                        String bankStmtUrl) {
+        // ── KYC Request DTO ────────────────────────────────────────────────────
+        public record KycRequest(String documentUrl) {
         }
 }
