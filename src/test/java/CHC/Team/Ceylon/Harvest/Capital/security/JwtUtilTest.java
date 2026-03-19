@@ -11,16 +11,17 @@ class JwtUtilTest {
 
     @BeforeEach
     void setUp() {
-        jwtUtil = new JwtUtil();
+        jwtUtil = new JwtUtil("MDEyMzQ1Njc4OUFCQ0RFRjAxMjM0NTY3ODlBQkNERUY=", 3600000L);
     }
 
     @Test
-    void generateToken_shouldContainUserIdAndRole() {
-        String token = jwtUtil.generateToken(99L, "ADMIN");
+    void generateToken_shouldContainUserIdRoleAndVerificationStatus() {
+        String token = jwtUtil.generateToken(99L, "ADMIN", "VERIFIED");
 
         assertNotNull(token);
         assertEquals("99", jwtUtil.extractUserId(token));
         assertEquals("ADMIN", jwtUtil.extractRole(token));
+        assertEquals("VERIFIED", jwtUtil.extractVerificationStatus(token));
         assertTrue(jwtUtil.validateToken(token));
     }
 
