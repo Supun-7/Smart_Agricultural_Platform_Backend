@@ -8,7 +8,6 @@ import CHC.Team.Ceylon.Harvest.Capital.entity.Project;
 import CHC.Team.Ceylon.Harvest.Capital.exception.FarmerDashboardException;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerRepository;
-import CHC.Team.Ceylon.Harvest.Capital.repository.InvestmentRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,8 +31,6 @@ class FarmerDashboardServiceImplTest {
     @Mock
     private ProjectRepository projectRepository;
 
-    @Mock
-    private InvestmentRepository investmentRepository;
 
     @Mock
     private FarmerRepository farmerRepository;
@@ -70,14 +67,11 @@ class FarmerDashboardServiceImplTest {
         given(farmerRepository.findByUserUserId(userId)).willReturn(Optional.of(farmer));
         given(farmerApplicationRepository.findTopByUserUserIdOrderBySubmittedAtDesc(userId))
                 .willReturn(Optional.of(latestApplication));
-        given(investmentRepository.sumAmountByProjectId(100L)).willReturn(150000.0);
-        given(investmentRepository.sumAmountByProjectId(101L)).willReturn(null);
-        given(investmentRepository.sumAmountByProjectId(102L)).willReturn(0.0);
 
         FarmerDashboardResponse response = farmerDashboardService.getFarmerDashboard(userId);
 
         assertEquals(2, response.summary().totalFundedLands());
-        assertEquals(BigDecimal.valueOf(350000.0), response.summary().totalInvestmentAmount());
+        assertEquals(BigDecimal.valueOf(320000.0), response.summary().totalInvestmentAmount());
         assertEquals(2, response.fundedLands().size());
 
         FundedLandDto firstLand = response.fundedLands().get(0);
@@ -85,7 +79,7 @@ class FarmerDashboardServiceImplTest {
         assertEquals("Pepper Expansion", firstLand.projectName());
         assertEquals("Green Valley Plot", firstLand.landName());
         assertEquals("Kandy", firstLand.farmLocation());
-        assertEquals(BigDecimal.valueOf(150000.0), firstLand.investmentAmount());
+        assertEquals(BigDecimal.valueOf(120000.0), firstLand.investmentAmount());
         assertEquals(BigDecimal.valueOf(65.0), firstLand.projectProgress());
 
         FundedLandDto secondLand = response.fundedLands().get(1);
@@ -102,7 +96,6 @@ class FarmerDashboardServiceImplTest {
         given(farmerRepository.findByUserUserId(userId)).willReturn(Optional.empty());
         given(farmerApplicationRepository.findTopByUserUserIdOrderBySubmittedAtDesc(userId))
                 .willReturn(Optional.of(latestApplication));
-        given(investmentRepository.sumAmountByProjectId(201L)).willReturn(25000.0);
 
         FarmerDashboardResponse response = farmerDashboardService.getFarmerDashboard(userId);
 

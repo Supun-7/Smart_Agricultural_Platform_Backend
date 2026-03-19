@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(FarmerDashboardException.class)
-    public ResponseEntity<ApiErrorResponse> handleFarmerDashboardException(FarmerDashboardException ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ApiErrorResponse(ex.getMessage(), LocalDateTime.now()));
-    }
+        @ExceptionHandler(FarmerDashboardException.class)
+        public ResponseEntity<ApiErrorResponse> handleFarmerDashboardException(FarmerDashboardException ex) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .body(new ApiErrorResponse(ex.getMessage(), LocalDateTime.now()));
+        }
 }
