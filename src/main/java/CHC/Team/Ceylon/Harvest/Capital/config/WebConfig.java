@@ -4,6 +4,7 @@ import CHC.Team.Ceylon.Harvest.Capital.security.RoleInterceptor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.*;
 
+
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
@@ -16,7 +17,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(roleInterceptor)
-            .addPathPatterns("/api/**")       
+            .addPathPatterns("/api/**","/farmer/**")
             .excludePathPatterns(
                 "/api/users/register",        
                 "/api/users/login",        
