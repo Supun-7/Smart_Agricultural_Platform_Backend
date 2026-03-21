@@ -43,7 +43,7 @@ class AuditorAccessControlWebMvcTest {
     void auditorEndpoint_shouldAllowAuditorRole() throws Exception {
         stubValidTokenWithRole("AUDITOR");
 
-        mockMvc.perform(get("/api/auditor/transactions")
+        mockMvc.perform(get("/api/auditor/dashboard")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer good-token"))
                 .andExpect(status().isOk());
     }
@@ -52,7 +52,7 @@ class AuditorAccessControlWebMvcTest {
     void auditorEndpoint_shouldRejectAdminRoleWith403() throws Exception {
         stubValidTokenWithRole("ADMIN");
 
-        mockMvc.perform(get("/api/auditor/transactions")
+        mockMvc.perform(get("/api/auditor/dashboard")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer good-token"))
                 .andExpect(status().isForbidden());
     }
@@ -60,5 +60,6 @@ class AuditorAccessControlWebMvcTest {
     private void stubValidTokenWithRole(String role) {
         given(jwtUtil.validateToken(anyString())).willReturn(true);
         given(jwtUtil.extractRole(anyString())).willReturn(role);
+        given(jwtUtil.extractUserId(anyString())).willReturn("1");
     }
 }
