@@ -18,29 +18,24 @@ public class RoleInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(
-        HttpServletRequest request,
-        HttpServletResponse response,
-        Object handler
+            HttpServletRequest request,
+            HttpServletResponse response,
+            Object handler
     ) throws Exception {
 
         // 1. Only process actual controller methods
-        //    (ignores things like static files)
         if (!(handler instanceof HandlerMethod method)) {
             return true;
         }
 
         // 2. Check if this endpoint has @RequiredRole
-        //    If not — no restriction, let it pass
-        RequiredRole requiredRole =
-            method.getMethodAnnotation(RequiredRole.class);
-
+        RequiredRole requiredRole = method.getMethodAnnotation(RequiredRole.class);
         if (requiredRole == null) {
             return true;
         }
 
         // 3. Get the Authorization header
         String authHeader = request.getHeader("Authorization");
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.sendError(401, "Missing or invalid Authorization header");
             return false;
@@ -48,16 +43,22 @@ public class RoleInterceptor implements HandlerInterceptor {
 
         // 4. Extract and validate the token
         String token = authHeader.substring(7);
-
         if (!jwtUtil.validateToken(token)) {
             response.sendError(401, "Invalid or expired token");
             return false;
         }
 
-        // 5. Extract role from token
+        // 5. ── NEW — extract userId and store in request ──────────────────
+        //    Any controller can now do: request.getAttribute("userId")
+        //    extractUserId() returns a String, so we parse it to Long
+        String userIdStr = jwtUtil.extractUserId(token);
+        request.setAttribute("userId", Long.parseLong(userIdStr));
+        // ────────────────────────────────────────────────────────────────
+
+        // 6. Extract role from token
         String userRoleStr = jwtUtil.extractRole(token);
 
-        // 6. Convert string to enum safely
+        // 7. Convert string to enum safely
         Role userRole;
         try {
             userRole = Role.valueOf(userRoleStr);
@@ -66,14 +67,14 @@ public class RoleInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 7. Check if user's role is in the allowed list
+        // 8. Check if user's role is in the allowed list
         for (Role allowed : requiredRole.value()) {
             if (allowed == userRole) {
                 return true; // ✅ access granted
             }
         }
 
-        // 8. Role didn't match — AC-3 and AC-4 enforced here
+        // 9. Role didn't match
         response.sendError(403, "Access denied — insufficient role");
         return false;
     }
