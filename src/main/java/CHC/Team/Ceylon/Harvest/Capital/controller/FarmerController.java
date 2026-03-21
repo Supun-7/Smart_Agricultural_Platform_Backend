@@ -1,5 +1,6 @@
 package CHC.Team.Ceylon.Harvest.Capital.controller;
 
+import CHC.Team.Ceylon.Harvest.Capital.dto.FarmerDashboardResponse;
 import CHC.Team.Ceylon.Harvest.Capital.entity.FarmerApplication;
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
@@ -8,6 +9,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
+import CHC.Team.Ceylon.Harvest.Capital.service.FarmerDashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,27 +18,38 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/farmer")
+@RequestMapping({"/api/farmer","/farmer"})
 @CrossOrigin(origins = "*")
 public class FarmerController {
 
         private final UserRepository userRepository;
         private final FarmerApplicationRepository farmerApplicationRepository;
         private final JwtUtil jwtUtil;
+        private final FarmerDashboardService farmerDashboardService;
 
         public FarmerController(
                         UserRepository userRepository,
                         FarmerApplicationRepository farmerApplicationRepository,
-                        JwtUtil jwtUtil) {
+                        JwtUtil jwtUtil, FarmerDashboardService farmerDashboardService) {
                 this.userRepository = userRepository;
                 this.farmerApplicationRepository = farmerApplicationRepository;
                 this.jwtUtil = jwtUtil;
+                this.farmerDashboardService = farmerDashboardService;
         }
 
         private Long extractUserId(String authHeader) {
                 String token = authHeader.substring(7);
                 return Long.parseLong(jwtUtil.extractUserId(token));
         }
+
+        @GetMapping("/dashboard")
+        @RequiredRole(Role.FARMER)
+        public ResponseEntity<FarmerDashboardResponse> getFarmerDashboard(
+                @RequestHeader("Authorization") String authHeader) {
+                Long userId = extractUserId(authHeader);
+                return ResponseEntity.ok(farmerDashboardService.getFarmerDashboard(userId));
+        }
+
 
         @GetMapping("/profile")
         @RequiredRole(Role.FARMER)

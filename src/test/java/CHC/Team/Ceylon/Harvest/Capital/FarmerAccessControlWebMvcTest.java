@@ -6,6 +6,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RoleInterceptor;
+import CHC.Team.Ceylon.Harvest.Capital.service.FarmerDashboardService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -34,6 +35,9 @@ class FarmerAccessControlWebMvcTest {
 
     @MockitoBean
     private JwtUtil jwtUtil;
+
+    @MockitoBean
+    private FarmerDashboardService farmerDashboardService;
 
     @Test
     void farmerEndpoint_shouldAllowFarmerRole() throws Exception {
