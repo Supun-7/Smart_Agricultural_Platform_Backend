@@ -66,5 +66,6 @@ class AdminAccessControlWebMvcTest {
     private void stubValidTokenWithRole(String role) {
         given(jwtUtil.validateToken(anyString())).willReturn(true);
         given(jwtUtil.extractRole(anyString())).willReturn(role);
+        given(jwtUtil.extractUserId(anyString())).willReturn("1");
     }
 }
