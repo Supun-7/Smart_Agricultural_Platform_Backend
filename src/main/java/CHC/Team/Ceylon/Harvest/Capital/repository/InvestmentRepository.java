@@ -28,4 +28,8 @@ public interface InvestmentRepository extends JpaRepository<Investment, Long> {
 
         @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i WHERE i.land.landId = :landId")
         BigDecimal sumAmountByLandId(@Param("landId") Long landId);
+
+        @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i")
+        BigDecimal sumTotalInvestmentPlatformWide();
+
 }
