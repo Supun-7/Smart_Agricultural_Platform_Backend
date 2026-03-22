@@ -1,8 +1,6 @@
 package CHC.Team.Ceylon.Harvest.Capital.controller;
 
-import CHC.Team.Ceylon.Harvest.Capital.dto.DashboardSummaryDto;
-import CHC.Team.Ceylon.Harvest.Capital.dto.FarmerDashboardResponse;
-import CHC.Team.Ceylon.Harvest.Capital.dto.FundedLandDto;
+import CHC.Team.Ceylon.Harvest.Capital.exception.FarmerDashboardException;
 import CHC.Team.Ceylon.Harvest.Capital.exception.GlobalExceptionHandler;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
@@ -17,8 +15,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,15 +56,22 @@ class FarmerDashboardControllerTest {
 
     @Test
     void getFarmerDashboard_shouldReturnLiveDashboardDataFromService() throws Exception {
-        FarmerDashboardResponse response = new FarmerDashboardResponse(
-                new DashboardSummaryDto(1, BigDecimal.valueOf(150000.0)),
-                List.of(new FundedLandDto(
-                        55L,
-                        "Pepper Expansion",
-                        "Green Valley Plot",
-                        "Kandy",
-                        BigDecimal.valueOf(150000.0),
-                        BigDecimal.valueOf(65.0))));
+        // FarmerDashboardService.getFarmerDashboard() returns Map<String, Object>
+        Map<String, Object> summary = Map.of(
+                "totalFundedLands", 1,
+                "totalInvestmentAmount", 150000.0);
+
+        Map<String, Object> land = Map.of(
+                "projectId", 55,
+                "projectName", "Pepper Expansion",
+                "landName", "Green Valley Plot",
+                "farmLocation", "Kandy",
+                "investmentAmount", 150000.0,
+                "projectProgress", 65.0);
+
+        Map<String, Object> response = Map.of(
+                "summary", summary,
+                "fundedLands", List.of(land));
 
         when(jwtUtil.extractUserId("qa-token")).thenReturn("99");
         when(farmerDashboardService.getFarmerDashboard(99L)).thenReturn(response);
@@ -87,7 +92,7 @@ class FarmerDashboardControllerTest {
     void getFarmerDashboard_whenServiceFails_shouldReturnUserFriendlyErrorMessage() throws Exception {
         when(jwtUtil.extractUserId("qa-token")).thenReturn("99");
         when(farmerDashboardService.getFarmerDashboard(99L))
-                .thenThrow(new CHC.Team.Ceylon.Harvest.Capital.exception.FarmerDashboardException(
+                .thenThrow(new FarmerDashboardException(
                         "Unable to load farmer dashboard at the moment. Please try again later.",
                         new RuntimeException("Simulated backend failure")));
 

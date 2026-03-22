@@ -1,8 +1,7 @@
 package CHC.Team.Ceylon.Harvest.Capital.service;
 
-import CHC.Team.Ceylon.Harvest.Capital.dto.FarmerDashboardResponse;
+import java.util.Map;
 
 public interface FarmerDashboardService {
-
-    FarmerDashboardResponse getFarmerDashboard(Long userId);
+    Map<String, Object> getFarmerDashboard(Long userId);
 }
