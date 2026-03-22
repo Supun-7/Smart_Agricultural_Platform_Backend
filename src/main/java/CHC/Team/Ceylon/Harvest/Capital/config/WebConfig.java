@@ -21,7 +21,8 @@ public class WebConfig implements WebMvcConfigurer {
             .excludePathPatterns(
                 "/api/users/register",        
                 "/api/users/login",        
-                "/api/gate/check"             
+                "/api/gate/check",
+                "/api/auth/google"          
             );
     }
 }

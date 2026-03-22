@@ -1,123 +1,100 @@
 package CHC.Team.Ceylon.Harvest.Capital.service;
 
-import CHC.Team.Ceylon.Harvest.Capital.dto.DashboardSummaryDto;
-import CHC.Team.Ceylon.Harvest.Capital.dto.FarmerDashboardResponse;
-import CHC.Team.Ceylon.Harvest.Capital.dto.FundedLandDto;
-import CHC.Team.Ceylon.Harvest.Capital.entity.Farmer;
 import CHC.Team.Ceylon.Harvest.Capital.entity.FarmerApplication;
 import CHC.Team.Ceylon.Harvest.Capital.entity.Project;
-import CHC.Team.Ceylon.Harvest.Capital.exception.FarmerDashboardException;
+import CHC.Team.Ceylon.Harvest.Capital.entity.User;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
-import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
+import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
 public class FarmerDashboardServiceImpl implements FarmerDashboardService {
 
-    private final ProjectRepository projectRepository;
-    private final FarmerRepository farmerRepository;
-    private final FarmerApplicationRepository farmerApplicationRepository;
+    private final UserRepository               userRepository;
+    private final FarmerApplicationRepository  farmerApplicationRepository;
+    private final ProjectRepository            projectRepository;
 
     public FarmerDashboardServiceImpl(
-            ProjectRepository projectRepository,
-            FarmerRepository farmerRepository,
-            FarmerApplicationRepository farmerApplicationRepository) {
-        this.projectRepository = projectRepository;
-        this.farmerRepository = farmerRepository;
+            UserRepository userRepository,
+            FarmerApplicationRepository farmerApplicationRepository,
+            ProjectRepository projectRepository) {
+        this.userRepository              = userRepository;
         this.farmerApplicationRepository = farmerApplicationRepository;
+        this.projectRepository           = projectRepository;
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public FarmerDashboardResponse getFarmerDashboard(Long userId) {
-        try {
-            List<Project> projects = projectRepository.findByFarmerUserUserIdOrderByIdAsc(userId);
-            Optional<Farmer> farmerOpt = farmerRepository.findByUserUserId(userId);
-            Optional<FarmerApplication> latestApplication = farmerApplicationRepository
-                    .findTopByUserUserIdOrderBySubmittedAtDesc(userId);
+    public Map<String, Object> getFarmerDashboard(Long userId) {
 
-            List<FundedLandDto> fundedLands = new ArrayList<>();
-            BigDecimal totalInvestmentAmount = BigDecimal.ZERO;
+        // ── Farmer user info ──────────────────────────────────
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Farmer not found: " + userId));
 
-            for (Project project : projects) {
-                BigDecimal investmentAmount = resolveInvestmentAmount(project);
-                if (investmentAmount.compareTo(BigDecimal.ZERO) <= 0) {
-                    continue;
-                }
+        // ── Latest farmer application ─────────────────────────
+        Optional<FarmerApplication> latestApp = farmerApplicationRepository
+                .findTopByUserUserIdOrderBySubmittedAtDesc(userId);
 
-                totalInvestmentAmount = totalInvestmentAmount.add(investmentAmount);
-                fundedLands.add(new FundedLandDto(
-                        project.getId(),
-                        project.getProjectName(),
-                        resolveLandName(project, farmerOpt, latestApplication),
-                        resolveFarmLocation(farmerOpt, latestApplication),
-                        investmentAmount,
-                        toBigDecimal(project.getProgress())));
+        Map<String, Object> applicationInfo = new HashMap<>();
+        if (latestApp.isPresent()) {
+            FarmerApplication app = latestApp.get();
+            applicationInfo.put("status",        app.getStatus().name());
+            applicationInfo.put("farmerName",    app.getFarmerName()   != null ? app.getFarmerName()   : "");
+            applicationInfo.put("surname",       app.getSurname()      != null ? app.getSurname()      : "");
+            applicationInfo.put("farmLocation",  app.getFarmLocation() != null ? app.getFarmLocation() : "");
+            applicationInfo.put("cropTypes",     app.getCropTypes()    != null ? app.getCropTypes()    : "");
+            applicationInfo.put("farmAddress",   app.getFarmAddress()  != null ? app.getFarmAddress()  : "");
+            applicationInfo.put("nicNumber",     app.getNicNumber()    != null ? app.getNicNumber()    : "");
+            applicationInfo.put("submittedAt",   app.getSubmittedAt()  != null ? app.getSubmittedAt().toString() : "");
+            applicationInfo.put("nicFrontUrl",   app.getNicFrontUrl()  != null ? app.getNicFrontUrl()  : "");
+            applicationInfo.put("nicBackUrl",    app.getNicBackUrl()   != null ? app.getNicBackUrl()   : "");
+            applicationInfo.put("landPhotoUrls", app.getLandPhotoUrls() != null ? app.getLandPhotoUrls() : "");
+            if (app.getLandSizeAcres() != null) {
+                applicationInfo.put("landSizeAcres", app.getLandSizeAcres());
+            } else {
+                applicationInfo.put("landSizeAcres", 0);
             }
-
-            return new FarmerDashboardResponse(
-                    new DashboardSummaryDto(fundedLands.size(), totalInvestmentAmount),
-                    fundedLands);
-        } catch (Exception ex) {
-            throw new FarmerDashboardException(
-                    "Unable to load farmer dashboard at the moment. Please try again later.",
-                    ex);
-        }
-    }
-
-    private BigDecimal resolveInvestmentAmount(Project project) {
-        return toBigDecimal(project.getCurrentAmount());
-    }
-
-    private String resolveLandName(
-            Project project,
-            Optional<Farmer> farmerOpt,
-            Optional<FarmerApplication> latestApplication) {
-        if (farmerOpt.isPresent() && hasText(farmerOpt.get().getLandName())) {
-            return farmerOpt.get().getLandName();
+        } else {
+            applicationInfo.put("status", "NOT_SUBMITTED");
         }
 
-        if (latestApplication.isPresent() && hasText(latestApplication.get().getFarmAddress())) {
-            return latestApplication.get().getFarmAddress();
+        // ── Projects for this farmer ──────────────────────────
+        List<Project> projects = projectRepository
+                .findByFarmerUserUserIdOrderByIdAsc(userId);
+
+        List<Map<String, Object>> projectList = new ArrayList<>();
+        double totalFunded = 0;
+
+        for (Project p : projects) {
+            Map<String, Object> proj = new HashMap<>();
+            proj.put("id",            p.getId());
+            proj.put("projectName",   p.getProjectName()   != null ? p.getProjectName()   : "");
+            proj.put("currentAmount", p.getCurrentAmount() != null ? p.getCurrentAmount() : 0);
+            proj.put("targetAmount",  p.getTargetAmount()  != null ? p.getTargetAmount()  : 0);
+            proj.put("progress",      p.getProgress()      != null ? p.getProgress()      : 0);
+            projectList.add(proj);
+            if (p.getCurrentAmount() != null) {
+                totalFunded += p.getCurrentAmount();
+            }
         }
 
-        if (latestApplication.isPresent() && hasText(latestApplication.get().getFarmLocation())) {
-            return latestApplication.get().getFarmLocation();
-        }
+        // ── Build final response ──────────────────────────────
+        Map<String, Object> result = new HashMap<>();
+        result.put("farmerId",        user.getUserId());
+        result.put("farmerName",      user.getFullName());
+        result.put("email",           user.getEmail());
+        result.put("status",          user.getVerificationStatus().name());
+        result.put("application",     applicationInfo);
+        result.put("projects",        projectList);
+        result.put("totalProjects",   projectList.size());
+        result.put("totalFunded",     totalFunded);
 
-        return project.getProjectName();
-    }
-
-    private String resolveFarmLocation(
-            Optional<Farmer> farmerOpt,
-            Optional<FarmerApplication> latestApplication) {
-        if (farmerOpt.isPresent() && hasText(farmerOpt.get().getLandLocation())) {
-            return farmerOpt.get().getLandLocation();
-        }
-
-        if (latestApplication.isPresent() && hasText(latestApplication.get().getFarmLocation())) {
-            return latestApplication.get().getFarmLocation();
-        }
-
-        if (latestApplication.isPresent() && hasText(latestApplication.get().getFarmAddress())) {
-            return latestApplication.get().getFarmAddress();
-        }
-
-        return "Not available";
-    }
-
-    private BigDecimal toBigDecimal(Double value) {
-        return value == null ? BigDecimal.ZERO : BigDecimal.valueOf(value);
-    }
-
-    private boolean hasText(String value) {
-        return value != null && !value.isBlank();
+        return result;
     }
 }

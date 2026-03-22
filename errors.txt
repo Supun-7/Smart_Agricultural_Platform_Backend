@@ -1,0 +1,88 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ------------------< CHC.Team:Ceylon-Harvest-Capital >-------------------
+[INFO] Building Ceylon-Harvest-Capital 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ Ceylon-Harvest-Capital ---
+[INFO] Deleting /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ Ceylon-Harvest-Capital ---
+[INFO] Copying 1 resource from src/main/resources to target/classes
+[INFO] Copying 0 resource from src/main/resources to target/classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ Ceylon-Harvest-Capital ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 53 source files with javac [debug parameters release 17] to target/classes
+[INFO] -------------------------------------------------------------
+[ERROR] COMPILATION ERROR : 
+[INFO] -------------------------------------------------------------
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[1,2] cannot find symbol
+  symbol: class RestController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[2,2] cannot find symbol
+  symbol: class RequestMapping
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/service/GoogleService.java:[4,43] package com.google.api.client.json.jackson2 does not exist
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[9,13] cannot find symbol
+  symbol:   class UserService
+  location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[12,59] cannot find symbol
+  symbol:   class Map
+  location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[12,12] cannot find symbol
+  symbol:   class ResponseEntity
+  location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[5,6] cannot find symbol
+  symbol:   class Autowired
+  location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[8,6] cannot find symbol
+  symbol:   class Autowired
+  location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[12,47] cannot find symbol
+  symbol:   class RequestBody
+  location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[11,6] cannot find symbol
+  symbol:   class PostMapping
+  location: class GoogleLoginController
+[INFO] 10 errors 
+[INFO] -------------------------------------------------------------
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  0.931 s
+[INFO] Finished at: 2026-03-22T20:51:25+05:30
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-compiler-plugin:3.14.1:compile (default-compile) on project Ceylon-Harvest-Capital: Compilation failure: Compilation failure: 
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[1,2] cannot find symbol
+[ERROR]   symbol: class RestController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[2,2] cannot find symbol
+[ERROR]   symbol: class RequestMapping
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/service/GoogleService.java:[4,43] package com.google.api.client.json.jackson2 does not exist
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[9,13] cannot find symbol
+[ERROR]   symbol:   class UserService
+[ERROR]   location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[12,59] cannot find symbol
+[ERROR]   symbol:   class Map
+[ERROR]   location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[12,12] cannot find symbol
+[ERROR]   symbol:   class ResponseEntity
+[ERROR]   location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[5,6] cannot find symbol
+[ERROR]   symbol:   class Autowired
+[ERROR]   location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[8,6] cannot find symbol
+[ERROR]   symbol:   class Autowired
+[ERROR]   location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[12,47] cannot find symbol
+[ERROR]   symbol:   class RequestBody
+[ERROR]   location: class GoogleLoginController
+[ERROR] /Users/supundharmaratne/Downloads/CHC/DF2/Smart_Agricultural_Platform_Backend/src/main/java/CHC/Team/Ceylon/Harvest/Capital/controller/GoogleLoginController.java:[11,6] cannot find symbol
+[ERROR]   symbol:   class PostMapping
+[ERROR]   location: class GoogleLoginController
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
