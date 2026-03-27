@@ -8,7 +8,9 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
+import CHC.Team.Ceylon.Harvest.Capital.dto.ProjectMilestoneResponseDto;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestorMilestoneService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,16 +25,19 @@ public class InvestorController {
     private final KycSubmissionRepository kycSubmissionRepository;
     private final JwtUtil jwtUtil;
     private final InvestorDashboardService dashboardService;
+    private final InvestorMilestoneService milestoneService;
 
     public InvestorController(
             UserRepository userRepository,
             KycSubmissionRepository kycSubmissionRepository,
             JwtUtil jwtUtil,
-            InvestorDashboardService dashboardService) {
+            InvestorDashboardService dashboardService,
+            InvestorMilestoneService milestoneService) {
         this.userRepository = userRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
         this.jwtUtil = jwtUtil;
         this.dashboardService = dashboardService;
+        this.milestoneService = milestoneService;
     }
 
     private Long extractUserId(String authHeader) {
@@ -156,6 +161,24 @@ public class InvestorController {
         Long userId = extractUserId(authHeader);
         return ResponseEntity.ok(dashboardService.getReports(userId));
     }
+    
+    // ── GET /api/investor/projects/{landId}/milestones ────────────────────
+    // NEW endpoint — does NOT modify any existing endpoint above.
+    // AC-1: investor navigates to project detail from dashboard.
+    // AC-2 & AC-5: only APPROVED milestones returned (service enforces this).
+    // AC-3: each milestone has progressPercentage, notes, date, approvalStatus.
+    // AC-4: milestones are sorted latest-first (service/repository enforces).
+    @GetMapping("/projects/{landId}/milestones")
+    @RequiredRole(Role.INVESTOR)
+    public ResponseEntity<ProjectMilestoneResponseDto> getProjectMilestones(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long landId) {
+
+        Long userId = extractUserId(authHeader);
+        ProjectMilestoneResponseDto response = milestoneService.getApprovedMilestones(userId, landId);
+        return ResponseEntity.ok(response);
+    }
+
 
     // ── KYC Request DTO — full form fields ───────────────────────────────
     public record KycRequest(
