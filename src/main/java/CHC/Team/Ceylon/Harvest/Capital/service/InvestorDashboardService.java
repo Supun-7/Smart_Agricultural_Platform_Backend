@@ -4,6 +4,8 @@ import java.util.Map;
 
 public interface InvestorDashboardService {
 
+    void validateInvestorBalance(Long investorId, long investmentAmount) throws Exception;
+
     // AC-1: full dashboard data for the authenticated investor
     Map<String, Object> getDashboard(Long userId);
 

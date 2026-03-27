@@ -13,6 +13,8 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.WalletRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
 import CHC.Team.Ceylon.Harvest.Capital.service.BlockchainService;
+import CHC.Team.Ceylon.Harvest.Capital.service.TransactionService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,13 +29,14 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class InvestmentController {
 
-    private final UserRepository             userRepository;
-    private final WalletRepository           walletRepository;
-    private final LandRepository             landRepository;
-    private final InvestmentRepository       investmentRepository;
-    private final FarmerApplicationRepository farmerApplicationRepository;
-    private final JwtUtil                    jwtUtil;
-    private final BlockchainService          blockchainService;
+    private final UserRepository               userRepository;
+    private final WalletRepository             walletRepository;
+    private final LandRepository               landRepository;
+    private final InvestmentRepository         investmentRepository;
+    private final FarmerApplicationRepository  farmerApplicationRepository;
+    private final JwtUtil                      jwtUtil;
+    private final BlockchainService            blockchainService;
+    private final TransactionService           transactionService; // <-- added
 
     public InvestmentController(
             UserRepository userRepository,
@@ -42,7 +45,8 @@ public class InvestmentController {
             InvestmentRepository investmentRepository,
             FarmerApplicationRepository farmerApplicationRepository,
             JwtUtil jwtUtil,
-            BlockchainService blockchainService) {
+            BlockchainService blockchainService,
+            TransactionService transactionService) { // <-- added
         this.userRepository              = userRepository;
         this.walletRepository            = walletRepository;
         this.landRepository              = landRepository;
@@ -50,6 +54,7 @@ public class InvestmentController {
         this.farmerApplicationRepository = farmerApplicationRepository;
         this.jwtUtil                     = jwtUtil;
         this.blockchainService           = blockchainService;
+        this.transactionService          = transactionService; // <-- added
     }
 
     private Long extractUserId(String authHeader) {
@@ -57,14 +62,6 @@ public class InvestmentController {
         return Long.parseLong(jwtUtil.extractUserId(token));
     }
 
-    // ── POST /api/investment/fund ─────────────────────────────
-    // AC-2: Investor selects a land and enters investment amount
-    // AC-3: System validates wallet balance before processing
-    // AC-4: Returns error if balance insufficient
-    // AC-5: Creates transaction record
-    // AC-6: Deducts wallet balance
-    // AC-7: Updates land status to FUNDED
-    // AC-8: Investment appears on both dashboards
     @PostMapping("/fund")
     @RequiredRole(Role.INVESTOR)
     public ResponseEntity<?> fundLand(
@@ -81,19 +78,17 @@ public class InvestmentController {
         Land land = landRepository.findById(request.landId())
                 .orElseThrow(() -> new RuntimeException("Land not found"));
 
-        // Check land is still available
         if (!land.getIsActive()) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "This land has already been funded"));
         }
 
-        // AC-3: Get investor wallet and validate balance
+        // Wallet balance check
         Wallet wallet = walletRepository.findByUserUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
 
         BigDecimal amount = BigDecimal.valueOf(request.amount());
 
-        // AC-4: Insufficient balance check
         if (wallet.getBalance().compareTo(amount) < 0) {
             return ResponseEntity.badRequest().body(Map.of(
                     "error", "Insufficient wallet balance",
@@ -102,7 +97,6 @@ public class InvestmentController {
             ));
         }
 
-        // Minimum investment check
         if (land.getMinimumInvestment() != null &&
                 amount.compareTo(land.getMinimumInvestment()) < 0) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -111,13 +105,12 @@ public class InvestmentController {
             ));
         }
 
-        // ── Get farmer details for the contract ──────────────
+        // Farmer info
         String farmerName    = "Ceylon Harvest Farmer";
         String farmLocation  = land.getLocation() != null ? land.getLocation() : "Sri Lanka";
         String cropTypes     = "Mixed Agriculture";
         long   returnPercent = 18L;
 
-        // Try to get real farmer details from their application
         var farmerApp = farmerApplicationRepository
                 .findTopByUserUserIdOrderBySubmittedAtDesc(
                         land.getLandId());
@@ -127,14 +120,13 @@ public class InvestmentController {
             if (app.getCropTypes()  != null) cropTypes  = app.getCropTypes();
         }
 
-        // Harvest date = 6 months from now
         long harvestTimestamp = LocalDate.now()
                 .plusMonths(6)
                 .atStartOfDay()
                 .toInstant(ZoneOffset.UTC)
                 .getEpochSecond();
 
-        // ── Deploy smart contract on Polygon Mumbai ───────────
+        // Blockchain contract deployment
         String contractAddress  = null;
         String polygonScanLink  = null;
         String contractError    = null;
@@ -152,17 +144,15 @@ public class InvestmentController {
             );
             polygonScanLink = blockchainService.buildPolygonScanLink(contractAddress);
         } catch (Exception e) {
-            // Contract deployment failed — still record investment
-            // but note the error
             contractError = "Contract deployment failed: " + e.getMessage();
             System.err.println(contractError);
         }
 
-        // ── AC-6: Deduct wallet balance ───────────────────────
+        // Deduct wallet
         wallet.setBalance(wallet.getBalance().subtract(amount));
         walletRepository.save(wallet);
 
-        // ── AC-5: Create investment record ────────────────────
+        // Create investment record
         Investment investment = new Investment();
         investment.setInvestor(investor);
         investment.setLand(land);
@@ -173,12 +163,23 @@ public class InvestmentController {
         investment.setContractLink(polygonScanLink);
         investmentRepository.save(investment);
 
-        // ── AC-7: Update land status to FUNDED ────────────────
+        // ── NEW: Create transaction record ─────────────────────
+        try {
+            transactionService.createTransaction(
+                    investor.getUserId(),
+                    request.amount(),
+                    "INVESTMENT"
+            );
+        } catch (Exception e) {
+            System.err.println("Transaction creation failed: " + e.getMessage());
+        }
+
+        // Update land
         land.setIsActive(false);
         land.setProgressPercentage(100);
         landRepository.save(land);
 
-        // ── Build response ────────────────────────────────────
+        // Build response
         Map<String, Object> response = new java.util.HashMap<>();
         response.put("message",         "Investment successful");
         response.put("investmentId",    investment.getInvestmentId());
@@ -199,8 +200,6 @@ public class InvestmentController {
         return ResponseEntity.ok(response);
     }
 
-    // ── GET /api/investment/contract/{investmentId} ───────────
-    // Returns the blockchain contract link for an investment
     @GetMapping("/contract/{investmentId}")
     @RequiredRole(Role.INVESTOR)
     public ResponseEntity<?> getContractLink(
@@ -212,7 +211,6 @@ public class InvestmentController {
         Investment investment = investmentRepository.findById(investmentId)
                 .orElseThrow(() -> new RuntimeException("Investment not found"));
 
-        // Make sure this investment belongs to this investor
         if (!investment.getInvestor().getUserId().equals(userId)) {
             return ResponseEntity.status(403).body("Access denied");
         }
@@ -228,7 +226,6 @@ public class InvestmentController {
         ));
     }
 
-    // ── Fund request DTO ──────────────────────────────────────
     public record FundRequest(
             Long landId,
             long amount
