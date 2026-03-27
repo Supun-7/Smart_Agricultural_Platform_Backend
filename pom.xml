@@ -69,6 +69,14 @@
             <version>1.42.3</version>
         </dependency>
 
+        <!-- Smart Contract Creation - Web3 Dependencies -->
+        
+        <dependency>
+            <groupId>org.web3j</groupId>
+            <artifactId>core</artifactId>
+            <version>4.10.3</version>
+        </dependency>
+
         <!-- Boot 4 test dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
