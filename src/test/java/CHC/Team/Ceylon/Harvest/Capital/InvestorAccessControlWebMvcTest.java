@@ -7,6 +7,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RoleInterceptor;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestorMilestoneService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -38,6 +39,9 @@ class InvestorAccessControlWebMvcTest {
 
     @MockitoBean
     private InvestorDashboardService investorDashboardService;
+
+    @MockitoBean
+    private InvestorMilestoneService investorMilestoneService;
 
     @Test
     void investorEndpoint_shouldAllowInvestorRole() throws Exception {
