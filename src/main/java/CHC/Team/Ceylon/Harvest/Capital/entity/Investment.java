@@ -85,28 +85,4 @@ public class Investment {
     public void setLand(Land land) {
         this.land = land;
     }
-
-        // ── Blockchain fields ─────────────────────────────────────
-    // Stored after contract is deployed on Polygon Mumbai
-    @Column(name = "contract_address")
-    private String contractAddress;   // e.g. 0x1a2b3c4d...
-
-    @Column(name = "contract_link")
-    private String contractLink;      // PolygonScan URL
-
-    public String getContractAddress() {
-        return contractAddress;
-    }
-
-    public void setContractAddress(String contractAddress) {
-        this.contractAddress = contractAddress;
-    }
-
-    public String getContractLink() {
-        return contractLink;
-    }
-
-    public void setContractLink(String contractLink) {
-        this.contractLink = contractLink;
-    }
 }

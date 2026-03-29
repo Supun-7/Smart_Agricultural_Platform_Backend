@@ -1,47 +1,42 @@
 package CHC.Team.Ceylon.Harvest.Capital.repository;
 
 import CHC.Team.Ceylon.Harvest.Capital.entity.Milestone;
-import CHC.Team.Ceylon.Harvest.Capital.entity.Milestone.MilestoneStatus;
+import CHC.Team.Ceylon.Harvest.Capital.enums.MilestoneStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
-/**
- * Repository for Milestone entities.
- * All queries follow the existing pattern used in InvestmentRepository.
- */
 public interface MilestoneRepository extends JpaRepository<Milestone, Long> {
 
-    /**
-     * Fetch only APPROVED milestones for a given land, sorted latest first.
-     * Used by investors — PENDING and REJECTED are intentionally excluded.
-     *
-     * AC-2, AC-5: Only APPROVED milestones returned.
-     * AC-4 (sorted): milestoneDate DESC = latest first.
-     */
     @Query("""
-            SELECT m FROM Milestone m
-            WHERE m.land.landId = :landId
-              AND m.status = :status
-            ORDER BY m.milestoneDate DESC
+            select m
+            from Milestone m
+            join fetch m.farmer f
+            left join fetch m.reviewedBy rb
+            where m.status = :status
+            order by m.milestoneDate desc, m.createdAt desc
             """)
-    List<Milestone> findByLandIdAndStatus(
-            @Param("landId") Long landId,
-            @Param("status") MilestoneStatus status);
+    List<Milestone> findAllByStatusWithRelations(@Param("status") MilestoneStatus status);
 
-    /**
-     * Check that the investor actually has an investment in this land.
-     * Used to prevent an investor from querying milestones of a project
-     * they haven't funded.
-     */
     @Query("""
-            SELECT COUNT(i) > 0 FROM Investment i
-            WHERE i.investor.userId = :userId
-              AND i.land.landId    = :landId
+            select m
+            from Milestone m
+            join fetch m.farmer f
+            left join fetch m.reviewedBy rb
+            where m.id = :id
             """)
-    boolean existsByInvestorAndLand(
-            @Param("userId") Long userId,
-            @Param("landId") Long landId);
+    Optional<Milestone> findByIdWithRelations(@Param("id") Long id);
+
+    @Query("""
+            select m
+            from Milestone m
+            join fetch m.farmer f
+            left join fetch m.reviewedBy rb
+            where f.userId = :farmerUserId
+            order by m.createdAt desc
+            """)
+    List<Milestone> findAllByFarmerUserId(@Param("farmerUserId") Long farmerUserId);
 }

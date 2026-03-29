@@ -1,74 +1,177 @@
 package CHC.Team.Ceylon.Harvest.Capital.entity;
 
+import CHC.Team.Ceylon.Harvest.Capital.enums.MilestoneStatus;
 import jakarta.persistence.*;
+
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
-/**
- * Represents a milestone for a funded land/project.
- * A milestone can be PENDING, APPROVED, or REJECTED.
- * Investors can only see APPROVED milestones.
- *
- * Hibernate will auto-create the "milestones" table on startup
- * because spring.jpa.hibernate.ddl-auto=update.
- */
 @Entity
-@Table(name = "milestones")
+@Table(name = "milestones", indexes = {
+        @Index(name = "idx_milestone_status", columnList = "status"),
+        @Index(name = "idx_milestone_farmer", columnList = "user_id")
+})
 public class Milestone {
-
-    public enum MilestoneStatus {
-        PENDING,
-        APPROVED,
-        REJECTED
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "milestone_id")
-    private Long milestoneId;
+    private Long id;
 
-    /** The land (project) this milestone belongs to */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "land_id", nullable = false)
-    private Land land;
+    @Version
+    private Long version;
 
-    /** Progress percentage at this milestone, e.g. 25, 50, 75, 100 */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User farmer;
+
     @Column(name = "progress_percentage", nullable = false)
     private Integer progressPercentage;
 
-    /** Auditor/admin notes describing what was achieved */
-    @Column(name = "notes", columnDefinition = "TEXT")
+    @Column(name = "notes", nullable = false, columnDefinition = "TEXT")
     private String notes;
 
-    /** The date this milestone was recorded */
     @Column(name = "milestone_date", nullable = false)
     private LocalDate milestoneDate;
 
-    /** PENDING / APPROVED / REJECTED */
+    @Column(name = "evidence_files_json", columnDefinition = "TEXT")
+    private String evidenceFilesJson;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private MilestoneStatus status;
 
-    // ── Getters & Setters ──────────────────────────────────────────────────
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
 
-    public Long getMilestoneId() { return milestoneId; }
-    public void setMilestoneId(Long milestoneId) { this.milestoneId = milestoneId; }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private User reviewedBy;
 
-    public Land getLand() { return land; }
-    public void setLand(Land land) { this.land = land; }
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
 
-    public Integer getProgressPercentage() { return progressPercentage; }
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+        if (this.status == null) {
+            this.status = MilestoneStatus.PENDING;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    public User getFarmer() {
+        return farmer;
+    }
+
+    public void setFarmer(User farmer) {
+        this.farmer = farmer;
+    }
+
+    public Integer getProgressPercentage() {
+        return progressPercentage;
+    }
+
     public void setProgressPercentage(Integer progressPercentage) {
         this.progressPercentage = progressPercentage;
     }
 
-    public String getNotes() { return notes; }
-    public void setNotes(String notes) { this.notes = notes; }
+    public String getNotes() {
+        return notes;
+    }
 
-    public LocalDate getMilestoneDate() { return milestoneDate; }
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    public LocalDate getMilestoneDate() {
+        return milestoneDate;
+    }
+
     public void setMilestoneDate(LocalDate milestoneDate) {
         this.milestoneDate = milestoneDate;
     }
 
-    public MilestoneStatus getStatus() { return status; }
-    public void setStatus(MilestoneStatus status) { this.status = status; }
+    public String getEvidenceFilesJson() {
+        return evidenceFilesJson;
+    }
+
+    public void setEvidenceFilesJson(String evidenceFilesJson) {
+        this.evidenceFilesJson = evidenceFilesJson;
+    }
+
+    public MilestoneStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(MilestoneStatus status) {
+        this.status = status;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+
+    public User getReviewedBy() {
+        return reviewedBy;
+    }
+
+    public void setReviewedBy(User reviewedBy) {
+        this.reviewedBy = reviewedBy;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

@@ -12,4 +12,6 @@ public interface LandRepository extends JpaRepository<Land, Long> {
     List<Land> findAllByIsActiveTrue();
     
     List<Land> findByIsActiveTrueOrderByCreatedAtDesc();
+
+    List<Land> findByProjectNameIgnoreCase(String projectName);
 }
