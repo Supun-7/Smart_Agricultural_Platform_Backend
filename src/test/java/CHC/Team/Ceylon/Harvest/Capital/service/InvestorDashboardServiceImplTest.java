@@ -28,6 +28,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.ArgumentMatchers.anyList;
 
 @ExtendWith(MockitoExtension.class)
 class InvestorDashboardServiceImplTest {
@@ -46,6 +47,9 @@ class InvestorDashboardServiceImplTest {
 
     @Mock
     private LandRepository landRepository;
+
+    @Mock
+    private MilestoneService milestoneService;
 
     @InjectMocks
     private InvestorDashboardServiceImpl investorDashboardService;
@@ -118,6 +122,7 @@ class InvestorDashboardServiceImplTest {
                 .willReturn(BigDecimal.ZERO);
         given(investmentRepository.countDistinctLandsByUserId(userId)).willReturn(2L);
         given(investmentRepository.countActiveLandsByUserId(userId)).willReturn(1L);
+        given(milestoneService.getApprovedMilestonesForProjects(anyList())).willReturn(List.of());
 
         Map<String, Object> result = investorDashboardService.getDashboard(userId);
 
