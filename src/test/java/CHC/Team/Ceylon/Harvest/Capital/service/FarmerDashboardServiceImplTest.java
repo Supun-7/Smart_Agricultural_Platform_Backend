@@ -35,6 +35,9 @@ class FarmerDashboardServiceImplTest {
     @Mock
     private FarmerApplicationRepository farmerApplicationRepository;
 
+    @Mock
+    private MilestoneService milestoneService;
+
     @InjectMocks
     private FarmerDashboardServiceImpl farmerDashboardService;
 
@@ -69,6 +72,7 @@ class FarmerDashboardServiceImplTest {
                 .willReturn(List.of(firstProject, secondProject, unfundedProject));
         given(farmerApplicationRepository.findTopByUserUserIdOrderBySubmittedAtDesc(userId))
                 .willReturn(Optional.of(latestApplication));
+        given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);
 
@@ -102,6 +106,7 @@ class FarmerDashboardServiceImplTest {
                 .willReturn(List.of());
         given(farmerApplicationRepository.findTopByUserUserIdOrderBySubmittedAtDesc(userId))
                 .willReturn(Optional.of(latestApplication));
+        given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);
 
@@ -122,6 +127,7 @@ class FarmerDashboardServiceImplTest {
                 .willReturn(List.of());
         given(farmerApplicationRepository.findTopByUserUserIdOrderBySubmittedAtDesc(userId))
                 .willReturn(Optional.empty());
+        given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);
 

@@ -4,7 +4,6 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
-import CHC.Team.Ceylon.Harvest.Capital.service.InvestorMilestoneService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,9 +38,6 @@ class InvestorDashboardControllerTest {
     @Mock
     private InvestorDashboardService investorDashboardService;
 
-    @Mock
-    private InvestorMilestoneService investorMilestoneService;
-
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -50,8 +46,7 @@ class InvestorDashboardControllerTest {
                 userRepository,
                 kycSubmissionRepository,
                 jwtUtil,
-                investorDashboardService,
-                investorMilestoneService);
+                investorDashboardService);
 
         mockMvc = MockMvcBuilders.standaloneSetup(investorController).build();
     }

@@ -20,14 +20,17 @@ public class FarmerDashboardServiceImpl implements FarmerDashboardService {
     private final UserRepository               userRepository;
     private final FarmerApplicationRepository  farmerApplicationRepository;
     private final ProjectRepository            projectRepository;
+    private final MilestoneService             milestoneService;
 
     public FarmerDashboardServiceImpl(
             UserRepository userRepository,
             FarmerApplicationRepository farmerApplicationRepository,
-            ProjectRepository projectRepository) {
+            ProjectRepository projectRepository,
+            MilestoneService milestoneService) {
         this.userRepository              = userRepository;
         this.farmerApplicationRepository = farmerApplicationRepository;
         this.projectRepository           = projectRepository;
+        this.milestoneService            = milestoneService;
     }
 
     @Override
@@ -92,6 +95,7 @@ public class FarmerDashboardServiceImpl implements FarmerDashboardService {
         result.put("status",          user.getVerificationStatus().name());
         result.put("application",     applicationInfo);
         result.put("projects",        projectList);
+        result.put("milestones",      milestoneService.getFarmerMilestones(userId));
         result.put("totalProjects",   projectList.size());
         result.put("totalFunded",     totalFunded);
 
