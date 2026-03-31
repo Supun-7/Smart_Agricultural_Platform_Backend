@@ -16,10 +16,12 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.MilestoneRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.service.MilestoneService;
+import CHC.Team.Ceylon.Harvest.Capital.enums.AuditActionType;
+import CHC.Team.Ceylon.Harvest.Capital.service.AuditLogService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -39,6 +41,7 @@ public class MilestoneServiceImpl implements MilestoneService {
     private final ProjectRepository projectRepository;
     private final LandRepository landRepository;
     private final ObjectMapper objectMapper;
+    private final AuditLogService auditLogService;
     private static final Logger log = LoggerFactory.getLogger(MilestoneServiceImpl.class);
 
 
@@ -47,13 +50,16 @@ public class MilestoneServiceImpl implements MilestoneService {
             UserRepository userRepository,
             ProjectRepository projectRepository,
             LandRepository landRepository,
-            ObjectMapper objectMapper
+            ObjectMapper objectMapper,
+            AuditLogService auditLogService
     ) {
         this.milestoneRepository = milestoneRepository;
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.landRepository = landRepository;
         this.objectMapper = objectMapper;
+        this.auditLogService = auditLogService;
+
     }
 
     @Override
@@ -97,8 +103,16 @@ public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId
     log.info("Before milestone save for milestoneId={}", milestoneId);
     milestoneRepository.save(milestone);
 
-    log.info("Milestone approved successfully milestoneId={}", milestoneId);
-    return toDetailResponse(milestone);
+        // CHC-207-2: record the approval action in the audit log
+        auditLogService.log(
+                AuditActionType.APPROVED,
+                milestoneId,
+                milestone.getFarmer().getFullName(),
+                auditorId
+        );
+
+        log.info("Milestone approved successfully milestoneId={}", milestoneId);
+        return toDetailResponse(milestone);
 }
 
     @Override
@@ -119,6 +133,15 @@ public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId
         milestone.setReviewedAt(LocalDateTime.now());
         milestone.setRejectionReason(cleanedReason);
         milestoneRepository.save(milestone);
+
+       // CHC-207-2: record the rejection action in the audit log
+        auditLogService.log(
+                AuditActionType.REJECTED,
+                milestoneId,
+                milestone.getFarmer().getFullName(),
+                auditorId
+        );
+
 
         return toDetailResponse(milestone);
     }
