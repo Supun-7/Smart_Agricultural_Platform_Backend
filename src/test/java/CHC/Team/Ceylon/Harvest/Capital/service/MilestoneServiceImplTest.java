@@ -16,13 +16,14 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.MilestoneRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
+import CHC.Team.Ceylon.Harvest.Capital.service.AuditLogService;
 import CHC.Team.Ceylon.Harvest.Capital.service.impl.MilestoneServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tools.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -62,6 +63,9 @@ class MilestoneServiceImplTest {
     @Mock
     private LandRepository landRepository;
 
+    @Mock
+    private AuditLogService auditLogService;
+
     private MilestoneServiceImpl milestoneService;
 
     @BeforeEach
@@ -72,6 +76,8 @@ class MilestoneServiceImplTest {
                 projectRepository,
                 landRepository,
                 new ObjectMapper()
+        ,
+                auditLogService
         );
     }
 
