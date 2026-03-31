@@ -27,6 +27,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
@@ -37,6 +39,8 @@ public class MilestoneServiceImpl implements MilestoneService {
     private final ProjectRepository projectRepository;
     private final LandRepository landRepository;
     private final ObjectMapper objectMapper;
+    private static final Logger log = LoggerFactory.getLogger(MilestoneServiceImpl.class);
+
 
     public MilestoneServiceImpl(
             MilestoneRepository milestoneRepository,
@@ -68,23 +72,34 @@ public class MilestoneServiceImpl implements MilestoneService {
     }
 
     @Override
-    public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId) {
-        Milestone milestone = loadMilestone(milestoneId);
-        ensurePending(milestone);
+public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId) {
+    log.info("Approving milestoneId={} by auditorId={}", milestoneId, auditorId);
 
-        User auditor = userRepository.findById(auditorId)
-                .orElseThrow(() -> new ResourceNotFoundException("Auditor not found: " + auditorId));
+    Milestone milestone = loadMilestone(milestoneId);
+    log.info("Loaded milestone id={}, status={}, farmerId={}",
+            milestone.getId(),
+            milestone.getStatus(),
+            milestone.getFarmer() != null ? milestone.getFarmer().getUserId() : null);
 
-        milestone.setStatus(MilestoneStatus.APPROVED);
-        milestone.setReviewedBy(auditor);
-        milestone.setReviewedAt(LocalDateTime.now());
-        milestone.setRejectionReason(null);
+    ensurePending(milestone);
 
-        syncProgress(milestone);
-        milestoneRepository.save(milestone);
+    User auditor = userRepository.findById(auditorId)
+            .orElseThrow(() -> new ResourceNotFoundException("Auditor not found: " + auditorId));
 
-        return toDetailResponse(milestone);
-    }
+    milestone.setStatus(MilestoneStatus.APPROVED);
+    milestone.setReviewedBy(auditor);
+    milestone.setReviewedAt(LocalDateTime.now());
+    milestone.setRejectionReason(null);
+
+    log.info("Before syncProgress for milestoneId={}", milestoneId);
+    syncProgress(milestone);
+
+    log.info("Before milestone save for milestoneId={}", milestoneId);
+    milestoneRepository.save(milestone);
+
+    log.info("Milestone approved successfully milestoneId={}", milestoneId);
+    return toDetailResponse(milestone);
+}
 
     @Override
     public MilestoneDetailResponse rejectMilestone(Long milestoneId, Long auditorId, String reason) {
@@ -164,19 +179,30 @@ public class MilestoneServiceImpl implements MilestoneService {
                 ));
     }
 
-    private void syncProgress(Milestone milestone) {
-        Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
-        project.setProgress(milestone.getProgressPercentage().doubleValue());
-        projectRepository.save(project);
+   private void syncProgress(Milestone milestone) {
+    log.info("syncProgress start milestoneId={}, farmerId={}",
+            milestone.getId(),
+            milestone.getFarmer().getUserId());
 
-        List<Land> lands = landRepository.findByProjectNameIgnoreCase(project.getProjectName());
-        for (Land land : lands) {
-            land.setProgressPercentage(milestone.getProgressPercentage());
-        }
-        if (!lands.isEmpty()) {
-            landRepository.saveAll(lands);
-        }
+    Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
+    log.info("Resolved project id={}, name={}", project.getId(), project.getProjectName());
+
+    project.setProgress(milestone.getProgressPercentage().doubleValue());
+    projectRepository.save(project);
+
+    List<Land> lands = landRepository.findByProjectNameIgnoreCase(project.getProjectName());
+    log.info("Found {} land rows for projectName={}", lands.size(), project.getProjectName());
+
+    for (Land land : lands) {
+        land.setProgressPercentage(milestone.getProgressPercentage());
     }
+
+    if (!lands.isEmpty()) {
+        landRepository.saveAll(lands);
+    }
+
+    log.info("syncProgress complete milestoneId={}", milestone.getId());
+}
 
     private MilestoneSummaryResponse toSummaryResponse(Milestone milestone) {
         Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
