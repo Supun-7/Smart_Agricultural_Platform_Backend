@@ -45,7 +45,7 @@ public class AdminDashboardController {
     /**
      * Returns a live snapshot of platform-wide statistics for the admin dashboard.
      *
-     * <p><b>Authorization:</b> Bearer JWT with role {@code ADMIN} required.
+     * <p><b>Authorization:</b> Bearer JWT with role {@code ADMIN} or {@code SYSTEM_ADMIN} required.
      * Non-admin tokens receive {@code 403 Forbidden} from the interceptor
      * before this method is invoked.
      *
@@ -64,7 +64,7 @@ public class AdminDashboardController {
      *         {@code 500 Internal Server Error} with an error message on failure
      */
     @GetMapping("/dashboard")
-    @RequiredRole(Role.ADMIN)
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
     public ResponseEntity<?> getAdminDashboard() {
         try {
             AdminDashboardResponseDTO dashboardData = adminDashboardService.getDashboardData();
