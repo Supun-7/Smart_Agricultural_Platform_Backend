@@ -1,6 +1,8 @@
 package CHC.Team.Ceylon.Harvest.Capital.security;
 
+import CHC.Team.Ceylon.Harvest.Capital.enums.AccountStatus;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
+import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Component;
@@ -11,9 +13,11 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class RoleInterceptor implements HandlerInterceptor {
 
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
-    public RoleInterceptor(JwtUtil jwtUtil) {
+    public RoleInterceptor(JwtUtil jwtUtil, UserRepository userRepository) {
         this.jwtUtil = jwtUtil;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -48,17 +52,40 @@ public class RoleInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 5. ── NEW — extract userId and store in request ──────────────────
-        //    Any controller can now do: request.getAttribute("userId")
-        //    extractUserId() returns a String, so we parse it to Long
+        // 5. Extract userId and store in request attribute
         String userIdStr = jwtUtil.extractUserId(token);
-        request.setAttribute("userId", Long.parseLong(userIdStr));
-        // ────────────────────────────────────────────────────────────────
+        Long userId = Long.parseLong(userIdStr);
+        request.setAttribute("userId", userId);
 
-        // 6. Extract role from token
+        // 6. AC-5 — Check if account is SUSPENDED.
+        //    Wrapped in try/catch so that any DB issue (e.g. migration not yet
+        //    applied, connection hiccup) never accidentally blocks valid users.
+        //    A null accountStatus (pre-migration rows) is treated as ACTIVE.
+        try {
+            userRepository.findById(userId).ifPresent(user -> {
+                AccountStatus status = user.getAccountStatus();
+                if (status == AccountStatus.SUSPENDED) {
+                    // Use a runtime exception to break out of the lambda;
+                    // caught immediately below and converted to a 403.
+                    throw new SuspendedAccountException();
+                }
+            });
+        } catch (SuspendedAccountException ex) {
+            response.sendError(403,
+                "Account suspended. Please contact the platform administrator.");
+            return false;
+        } catch (Exception ex) {
+            // DB or mapping error — log it but do NOT block the request.
+            // The suspension check is a safety net; authentication already
+            // passed via JWT above, so we allow the request through.
+            System.err.println("[RoleInterceptor] accountStatus check failed " +
+                "(non-fatal): " + ex.getMessage());
+        }
+
+        // 7. Extract role from token
         String userRoleStr = jwtUtil.extractRole(token);
 
-        // 7. Convert string to enum safely
+        // 8. Convert string to enum safely
         Role userRole;
         try {
             userRole = Role.valueOf(userRoleStr);
@@ -67,15 +94,20 @@ public class RoleInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 8. Check if user's role is in the allowed list
+        // 9. Check if user's role is in the allowed list
         for (Role allowed : requiredRole.value()) {
             if (allowed == userRole) {
                 return true; // ✅ access granted
             }
         }
 
-        // 9. Role didn't match
+        // 10. Role didn't match
         response.sendError(403, "Access denied — insufficient role");
         return false;
+    }
+
+    /** Sentinel exception used to signal suspension inside the lambda. */
+    private static class SuspendedAccountException extends RuntimeException {
+        SuspendedAccountException() { super(null, null, true, false); }
     }
 }

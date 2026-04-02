@@ -4,5 +4,6 @@ public enum Role {
     FARMER,
     INVESTOR,
     ADMIN,
-    AUDITOR
+    AUDITOR,
+    SYSTEM_ADMIN
 }

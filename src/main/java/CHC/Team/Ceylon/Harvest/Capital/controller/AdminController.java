@@ -1,10 +1,13 @@
 package CHC.Team.Ceylon.Harvest.Capital.controller;
 
+import CHC.Team.Ceylon.Harvest.Capital.entity.AdminAuditLog;
 import CHC.Team.Ceylon.Harvest.Capital.entity.FarmerApplication;
 import CHC.Team.Ceylon.Harvest.Capital.entity.KycSubmission;
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
+import CHC.Team.Ceylon.Harvest.Capital.enums.AccountStatus;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
+import CHC.Team.Ceylon.Harvest.Capital.repository.AdminAuditLogRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
@@ -25,16 +28,19 @@ public class AdminController {
     private final UserRepository userRepository;
     private final KycSubmissionRepository kycSubmissionRepository;
     private final FarmerApplicationRepository farmerApplicationRepository;
+    private final AdminAuditLogRepository adminAuditLogRepository;
     private final JwtUtil jwtUtil;
 
     public AdminController(
             UserRepository userRepository,
             KycSubmissionRepository kycSubmissionRepository,
             FarmerApplicationRepository farmerApplicationRepository,
+            AdminAuditLogRepository adminAuditLogRepository,
             JwtUtil jwtUtil) {
         this.userRepository = userRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
         this.farmerApplicationRepository = farmerApplicationRepository;
+        this.adminAuditLogRepository = adminAuditLogRepository;
         this.jwtUtil = jwtUtil;
     }
 
@@ -43,10 +49,46 @@ public class AdminController {
         return Long.parseLong(jwtUtil.extractUserId(token));
     }
 
-    // ── View all users ────────────────────────────────────────
-    // AC-4: only Role.ADMIN can access this
+    private User requireUser(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found: " + userId));
+    }
+
+    private ResponseEntity<?> validateAdminAccountChange(User admin, User targetUser) {
+        if (admin.getUserId().equals(targetUser.getUserId())) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Nobody can change their own account status."));
+        }
+
+        boolean actorIsSystemAdmin = admin.getRole() == Role.SYSTEM_ADMIN;
+        boolean actorIsAdmin = admin.getRole() == Role.ADMIN;
+        boolean targetIsAdmin = targetUser.getRole() == Role.ADMIN;
+        boolean targetIsSystemAdmin = targetUser.getRole() == Role.SYSTEM_ADMIN;
+
+        if (!actorIsAdmin && !actorIsSystemAdmin) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "You are not allowed to manage user accounts."));
+        }
+
+        if (actorIsAdmin && (targetIsAdmin || targetIsSystemAdmin)) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "Only system admin can manage admin accounts."));
+        }
+
+        if (targetIsSystemAdmin) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "System admin accounts cannot be changed here."));
+        }
+
+        return null;
+    }
+
+    private void logAdminAction(User admin, User targetUser, String actionType, String details) {
+        adminAuditLogRepository.save(new AdminAuditLog(admin, targetUser, actionType, details));
+    }
+
     @GetMapping("/users")
-    @RequiredRole(Role.ADMIN)
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
     public ResponseEntity<?> getAllUsers() {
         var users = userRepository.findAll();
         return ResponseEntity.ok(Map.of(
@@ -56,15 +98,134 @@ public class AdminController {
                         "fullName", u.getFullName(),
                         "email", u.getEmail(),
                         "role", u.getRole().name(),
-                        "status", u.getVerificationStatus().name())).toList()));
+                        "status", u.getVerificationStatus().name(),
+                        "accountStatus", u.getAccountStatus() != null ? u.getAccountStatus().name() : "ACTIVE"
+                )).toList()));
     }
 
-    // ── Pending review queue (farmers + investors together) ───
+    @GetMapping("/audit-logs")
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
+    public ResponseEntity<?> getAdminAuditLogs() {
+        var logs = adminAuditLogRepository.findTop20ByOrderByCreatedAtDesc();
+        return ResponseEntity.ok(logs.stream().map(log -> Map.of(
+                "id", log.getId(),
+                "actionType", log.getActionType(),
+                "adminUserId", log.getAdminUser().getUserId(),
+                "adminName", log.getAdminUser().getFullName(),
+                "targetUserId", log.getTargetUser().getUserId(),
+                "targetName", log.getTargetUser().getFullName(),
+                "targetEmail", log.getTargetUser().getEmail(),
+                "details", log.getDetails(),
+                "createdAt", log.getCreatedAt()
+        )));
+    }
+
+    @PutMapping("/users/{userId}/suspend")
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
+    public ResponseEntity<?> suspendUser(
+            @PathVariable Long userId,
+            @RequestHeader("Authorization") String authHeader) {
+
+        User admin = requireUser(extractUserId(authHeader));
+        User user = requireUser(userId);
+
+        ResponseEntity<?> validationFailure = validateAdminAccountChange(admin, user);
+        if (validationFailure != null) {
+            return validationFailure;
+        }
+        if (user.getAccountStatus() == AccountStatus.SUSPENDED) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Account is already suspended."));
+        }
+
+        user.setAccountStatus(AccountStatus.SUSPENDED);
+        userRepository.save(user);
+        logAdminAction(admin, user, "SUSPEND_USER", "Suspended account");
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Account suspended successfully.",
+                "userId", user.getUserId(),
+                "accountStatus", user.getAccountStatus().name()
+        ));
+    }
+
+    @PutMapping("/users/{userId}/activate")
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
+    public ResponseEntity<?> activateUser(
+            @PathVariable Long userId,
+            @RequestHeader("Authorization") String authHeader) {
+
+        User admin = requireUser(extractUserId(authHeader));
+        User user = requireUser(userId);
+
+        ResponseEntity<?> validationFailure = validateAdminAccountChange(admin, user);
+        if (validationFailure != null) {
+            return validationFailure;
+        }
+        if (user.getAccountStatus() == AccountStatus.ACTIVE) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Account is already active."));
+        }
+
+        user.setAccountStatus(AccountStatus.ACTIVE);
+        userRepository.save(user);
+        logAdminAction(admin, user, "ACTIVATE_USER", "Activated account");
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Account activated successfully.",
+                "userId", user.getUserId(),
+                "accountStatus", user.getAccountStatus().name()
+        ));
+    }
+
+    @PutMapping("/users/bulk-suspend")
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
+    public ResponseEntity<?> bulkSuspendUsers(
+            @RequestBody BulkAccountActionRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        User admin = requireUser(extractUserId(authHeader));
+        int updated = 0;
+        for (Long userId : request.userIds()) {
+            User targetUser = requireUser(userId);
+            ResponseEntity<?> validationFailure = validateAdminAccountChange(admin, targetUser);
+            if (validationFailure != null) {
+                continue;
+            }
+            if (targetUser.getAccountStatus() != AccountStatus.SUSPENDED) {
+                targetUser.setAccountStatus(AccountStatus.SUSPENDED);
+                userRepository.save(targetUser);
+                logAdminAction(admin, targetUser, "BULK_SUSPEND_USER", "Bulk suspended account");
+                updated++;
+            }
+        }
+        return ResponseEntity.ok(Map.of("message", "Bulk suspend completed.", "updatedCount", updated));
+    }
+
+    @PutMapping("/users/bulk-activate")
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
+    public ResponseEntity<?> bulkActivateUsers(
+            @RequestBody BulkAccountActionRequest request,
+            @RequestHeader("Authorization") String authHeader) {
+        User admin = requireUser(extractUserId(authHeader));
+        int updated = 0;
+        for (Long userId : request.userIds()) {
+            User targetUser = requireUser(userId);
+            ResponseEntity<?> validationFailure = validateAdminAccountChange(admin, targetUser);
+            if (validationFailure != null) {
+                continue;
+            }
+            if (targetUser.getAccountStatus() != AccountStatus.ACTIVE) {
+                targetUser.setAccountStatus(AccountStatus.ACTIVE);
+                userRepository.save(targetUser);
+                logAdminAction(admin, targetUser, "BULK_ACTIVATE_USER", "Bulk activated account");
+                updated++;
+            }
+        }
+        return ResponseEntity.ok(Map.of("message", "Bulk activate completed.", "updatedCount", updated));
+    }
+
     @GetMapping("/queue")
-    @RequiredRole(Role.ADMIN)
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
     public ResponseEntity<?> getPendingQueue() {
         List<KycSubmission> pendingKyc = kycSubmissionRepository.findByStatus(VerificationStatus.PENDING);
-
         List<FarmerApplication> pendingFarmers = farmerApplicationRepository.findByStatus(VerificationStatus.PENDING);
 
         return ResponseEntity.ok(Map.of(
@@ -83,9 +244,8 @@ public class AdminController {
                         "submittedAt", f.getSubmittedAt().toString())).toList()));
     }
 
-    // ── KYC: Approve ─────────────────────────────────────────
     @PutMapping("/kyc/{id}/approve")
-    @RequiredRole(Role.ADMIN)
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
     public ResponseEntity<?> approveKyc(
             @PathVariable String id,
             @RequestHeader("Authorization") String authHeader) {
@@ -96,13 +256,11 @@ public class AdminController {
         KycSubmission kyc = kycSubmissionRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("KYC submission not found"));
 
-        // Update KYC record
         kyc.setStatus(VerificationStatus.VERIFIED);
         kyc.setReviewedAt(LocalDateTime.now());
         kyc.setReviewedBy(admin);
         kycSubmissionRepository.save(kyc);
 
-        // Update user's verification status too
         User investor = kyc.getUser();
         investor.setVerificationStatus(VerificationStatus.VERIFIED);
         userRepository.save(investor);
@@ -112,9 +270,8 @@ public class AdminController {
                 "userId", investor.getUserId()));
     }
 
-    // ── KYC: Reject ──────────────────────────────────────────
     @PutMapping("/kyc/{id}/reject")
-    @RequiredRole(Role.ADMIN)
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
     public ResponseEntity<?> rejectKyc(
             @PathVariable String id,
             @RequestHeader("Authorization") String authHeader,
@@ -132,7 +289,6 @@ public class AdminController {
         kyc.setReviewedBy(admin);
         kycSubmissionRepository.save(kyc);
 
-        // Update user's verification status
         User investor = kyc.getUser();
         investor.setVerificationStatus(VerificationStatus.REJECTED);
         userRepository.save(investor);
@@ -143,9 +299,8 @@ public class AdminController {
                 "userId", investor.getUserId()));
     }
 
-    // ── Farmer: Approve ───────────────────────────────────────
     @PutMapping("/farmer/{id}/approve")
-    @RequiredRole(Role.ADMIN)
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
     public ResponseEntity<?> approveFarmerApplication(
             @PathVariable String id,
             @RequestHeader("Authorization") String authHeader) {
@@ -161,7 +316,6 @@ public class AdminController {
         application.setReviewedBy(admin);
         farmerApplicationRepository.save(application);
 
-        // Update user's verification status
         User farmer = application.getUser();
         farmer.setVerificationStatus(VerificationStatus.VERIFIED);
         userRepository.save(farmer);
@@ -171,9 +325,8 @@ public class AdminController {
                 "userId", farmer.getUserId()));
     }
 
-    // ── Farmer: Reject ────────────────────────────────────────
     @PutMapping("/farmer/{id}/reject")
-    @RequiredRole(Role.ADMIN)
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
     public ResponseEntity<?> rejectFarmerApplication(
             @PathVariable String id,
             @RequestHeader("Authorization") String authHeader,
@@ -191,7 +344,6 @@ public class AdminController {
         application.setReviewedBy(admin);
         farmerApplicationRepository.save(application);
 
-        // Update user's verification status
         User farmer = application.getUser();
         farmer.setVerificationStatus(VerificationStatus.REJECTED);
         userRepository.save(farmer);
@@ -202,29 +354,23 @@ public class AdminController {
                 "userId", farmer.getUserId()));
     }
 
-    // ── Farm update request: Approve or Reject ────────────────
     @PutMapping("/update-request/{userId}/approve")
-    @RequiredRole(Role.ADMIN)
-    public ResponseEntity<?> approveFarmUpdateRequest(
-            @PathVariable Long userId) {
-        // TODO: Story 3 — implement farm_update_requests table
-        // and process actual field changes here
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
+    public ResponseEntity<?> approveFarmUpdateRequest(@PathVariable Long userId) {
         return ResponseEntity.ok(Map.of(
                 "message", "Farm update request approved for user " + userId));
     }
 
     @PutMapping("/update-request/{userId}/reject")
-    @RequiredRole(Role.ADMIN)
+    @RequiredRole({Role.ADMIN, Role.SYSTEM_ADMIN})
     public ResponseEntity<?> rejectFarmUpdateRequest(
             @PathVariable Long userId,
             @RequestBody ReviewRequest request) {
-        // TODO: Story 3 — implement farm_update_requests table
         return ResponseEntity.ok(Map.of(
                 "message", "Farm update request rejected",
                 "reason", request.reason()));
     }
 
-    // ── Shared review request DTO ─────────────────────────────
-    public record ReviewRequest(String reason) {
-    }
+    public record ReviewRequest(String reason) {}
+    public record BulkAccountActionRequest(List<Long> userIds) {}
 }
