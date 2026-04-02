@@ -1,5 +1,6 @@
 package CHC.Team.Ceylon.Harvest.Capital.entity;
 
+import CHC.Team.Ceylon.Harvest.Capital.enums.AccountStatus;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import jakarta.persistence.*;
@@ -30,6 +31,14 @@ public class User {
     @Column(name = "verification_status", nullable = false)
     private VerificationStatus verificationStatus = VerificationStatus.NOT_SUBMITTED;
 
+    /**
+     * AC-1 / AC-6: Tracks whether the account is ACTIVE or SUSPENDED.
+     * Defaults to ACTIVE for all new and existing users.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_status", nullable = false)
+    private AccountStatus accountStatus = AccountStatus.ACTIVE;
+
     public Long getUserId() { return userId; }
     public void setUserId(Long userId) { this.userId = userId; }
 
@@ -48,5 +57,10 @@ public class User {
     public VerificationStatus getVerificationStatus() { return verificationStatus; }
     public void setVerificationStatus(VerificationStatus verificationStatus) {
         this.verificationStatus = verificationStatus;
+    }
+
+    public AccountStatus getAccountStatus() { return accountStatus; }
+    public void setAccountStatus(AccountStatus accountStatus) {
+        this.accountStatus = accountStatus;
     }
 }
