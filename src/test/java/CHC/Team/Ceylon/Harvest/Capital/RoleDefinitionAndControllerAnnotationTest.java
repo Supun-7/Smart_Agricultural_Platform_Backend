@@ -19,7 +19,7 @@ class RoleDefinitionAndControllerAnnotationTest {
 
     @Test
     void roleConstants_shouldContainAllRequiredRoles() {
-        assertEquals(Set.of("FARMER", "INVESTOR", "AUDITOR", "ADMIN"),
+        assertEquals(Set.of("FARMER", "INVESTOR", "AUDITOR", "ADMIN", "SYSTEM_ADMIN"),
                 Arrays.stream(Role.values()).map(Enum::name).collect(Collectors.toSet()));
     }
 
@@ -55,8 +55,11 @@ class RoleDefinitionAndControllerAnnotationTest {
 
             RequiredRole requiredRole = method.getAnnotation(RequiredRole.class);
             assertNotNull(requiredRole, "Expected @RequiredRole on " + method.getName());
-            assertArrayEquals(new Role[]{Role.ADMIN}, requiredRole.value(),
-                    "Admin endpoint must only allow ADMIN: " + method.getName());
+            Set<Role> roles = Arrays.stream(requiredRole.value()).collect(Collectors.toSet());
+            assertTrue(roles.contains(Role.ADMIN),
+                    "Admin endpoint must allow ADMIN: " + method.getName());
+            assertTrue(Set.of(Role.ADMIN, Role.SYSTEM_ADMIN).containsAll(roles),
+                    "Admin endpoint must only allow ADMIN and SYSTEM_ADMIN: " + method.getName());
         }
     }
 

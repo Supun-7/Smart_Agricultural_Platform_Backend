@@ -4,6 +4,7 @@ import CHC.Team.Ceylon.Harvest.Capital.config.WebConfig;
 import CHC.Team.Ceylon.Harvest.Capital.controller.AdminDashboardController;
 import CHC.Team.Ceylon.Harvest.Capital.dto.AdminDashboardResponseDTO;
 import CHC.Team.Ceylon.Harvest.Capital.dto.UserDTO;
+import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RoleInterceptor;
 import CHC.Team.Ceylon.Harvest.Capital.service.AdminDashboardService;
@@ -38,6 +39,9 @@ class AdminDashboardAccessControlWebMvcTest {
     private AdminDashboardService adminDashboardService;
 
     @MockitoBean
+    private UserRepository userRepository;
+
+    @MockitoBean
     private JwtUtil jwtUtil;
 
     // ── AC-1 + AC-5: ADMIN token reaches the dashboard and gets 200 ───────────
@@ -45,7 +49,7 @@ class AdminDashboardAccessControlWebMvcTest {
     void adminDashboard_shouldReturn200ForValidAdminToken() throws Exception {
         stubValidTokenWithRole("ADMIN");
         given(adminDashboardService.getDashboardData()).willReturn(
-                new AdminDashboardResponseDTO(0, 0, BigDecimal.ZERO, List.of(), List.of()));
+                new AdminDashboardResponseDTO(0, 0, BigDecimal.ZERO, List.of(), List.of(), List.of(), List.of(), List.of(), List.of()));
 
         mockMvc.perform(get("/api/admin/dashboard")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer valid-admin-token"))

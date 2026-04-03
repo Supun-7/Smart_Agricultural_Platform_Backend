@@ -2,6 +2,7 @@ package CHC.Team.Ceylon.Harvest.Capital;
 
 import CHC.Team.Ceylon.Harvest.Capital.config.WebConfig;
 import CHC.Team.Ceylon.Harvest.Capital.controller.AdminController;
+import CHC.Team.Ceylon.Harvest.Capital.repository.AdminAuditLogRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
@@ -38,6 +39,9 @@ class AdminAccessControlWebMvcTest {
 
     @MockitoBean
     private FarmerApplicationRepository farmerApplicationRepository;
+
+    @MockitoBean
+    private AdminAuditLogRepository adminAuditLogRepository;
 
     @MockitoBean
     private JwtUtil jwtUtil;

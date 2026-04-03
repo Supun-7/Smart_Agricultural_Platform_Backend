@@ -5,6 +5,7 @@ import CHC.Team.Ceylon.Harvest.Capital.controller.UserController;
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
+import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RoleInterceptor;
 import CHC.Team.Ceylon.Harvest.Capital.service.UserService;
@@ -46,6 +47,9 @@ class AdminRegistrationAccessControlWebMvcTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private UserRepository userRepository;
 
     @MockitoBean
     private JwtUtil jwtUtil;

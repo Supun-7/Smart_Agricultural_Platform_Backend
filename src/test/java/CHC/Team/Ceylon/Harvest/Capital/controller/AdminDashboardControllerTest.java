@@ -53,12 +53,7 @@ class AdminDashboardControllerTest {
                 new UserDTO(3L, "Sachith Fernando", "sachith@invest.lk", "INVESTOR", "VERIFIED"),
                 new UserDTO(4L, "Rashmi Jayawardena","rashmi@invest.lk",  "INVESTOR", "NOT_SUBMITTED"));
 
-        AdminDashboardResponseDTO response = new AdminDashboardResponseDTO(
-                2,
-                2,
-                BigDecimal.valueOf(750000.00),
-                farmers,
-                investors);
+        AdminDashboardResponseDTO response = new AdminDashboardResponseDTO(2, 2, BigDecimal.valueOf(750000.00), farmers, investors, List.of(), List.of(), List.of(), List.of());
 
         when(adminDashboardService.getDashboardData()).thenReturn(response);
 
@@ -101,8 +96,7 @@ class AdminDashboardControllerTest {
     // ── AC-2: Dashboard handles zero farmers and investors gracefully ─────────
     @Test
     void getDashboard_shouldReturnEmptyListsWhenNoUsersExist() throws Exception {
-        AdminDashboardResponseDTO emptyResponse = new AdminDashboardResponseDTO(
-                0, 0, BigDecimal.ZERO, List.of(), List.of());
+        AdminDashboardResponseDTO emptyResponse = new AdminDashboardResponseDTO(0, 0, BigDecimal.ZERO, List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
 
         when(adminDashboardService.getDashboardData()).thenReturn(emptyResponse);
 
@@ -121,8 +115,7 @@ class AdminDashboardControllerTest {
         List<UserDTO> farmers = List.of(
                 new UserDTO(1L, "Nuwan Perera", "nuwan@farm.lk", "FARMER", "VERIFIED"));
 
-        AdminDashboardResponseDTO response = new AdminDashboardResponseDTO(
-                1, 0, BigDecimal.ZERO, farmers, List.of());
+        AdminDashboardResponseDTO response = new AdminDashboardResponseDTO(1, 0, BigDecimal.ZERO, farmers, List.of(), List.of(), List.of(), List.of(), List.of());
 
         when(adminDashboardService.getDashboardData()).thenReturn(response);
 

@@ -5,6 +5,7 @@ import CHC.Team.Ceylon.Harvest.Capital.entity.User;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.exception.AdminDashboardException;
+import CHC.Team.Ceylon.Harvest.Capital.repository.AdminAuditLogRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.InvestmentRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +34,9 @@ class AdminDashboardServiceImplTest {
 
     @Mock
     private InvestmentRepository investmentRepository;
+
+    @Mock
+    private AdminAuditLogRepository adminAuditLogRepository;
 
     @InjectMocks
     private AdminDashboardServiceImpl adminDashboardService;
