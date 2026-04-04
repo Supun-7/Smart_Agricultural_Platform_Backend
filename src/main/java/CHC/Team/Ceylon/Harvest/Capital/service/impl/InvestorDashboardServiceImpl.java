@@ -112,8 +112,11 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
             item.put("totalValue", land.getTotalValue());
             item.put("minimumInvestment", land.getMinimumInvestment());
             item.put("progressPercentage", land.getProgressPercentage());
-            // item.put("description", land.getDescription()); // Land entity does not have
-            // a description
+            item.put("sizeAcres", land.getSizeAcres());
+            item.put("cropType", land.getCropType());
+            item.put("description", land.getDescription());
+            item.put("imageUrls", land.getImageUrls());
+            item.put("farmerName", land.getFarmerUser() != null ? land.getFarmerUser().getFullName() : null);
             opportunities.add(item);
         }
 
