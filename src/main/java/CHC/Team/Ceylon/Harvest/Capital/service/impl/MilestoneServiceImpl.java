@@ -59,7 +59,6 @@ public class MilestoneServiceImpl implements MilestoneService {
         this.landRepository = landRepository;
         this.objectMapper = objectMapper;
         this.auditLogService = auditLogService;
-
     }
 
     @Override
@@ -78,32 +77,31 @@ public class MilestoneServiceImpl implements MilestoneService {
     }
 
     @Override
-public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId) {
-    log.info("Approving milestoneId={} by auditorId={}", milestoneId, auditorId);
+    public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId) {
+        log.info("Approving milestoneId={} by auditorId={}", milestoneId, auditorId);
 
-    Milestone milestone = loadMilestone(milestoneId);
-    log.info("Loaded milestone id={}, status={}, farmerId={}",
-            milestone.getId(),
-            milestone.getStatus(),
-            milestone.getFarmer() != null ? milestone.getFarmer().getUserId() : null);
+        Milestone milestone = loadMilestone(milestoneId);
+        log.info("Loaded milestone id={}, status={}, farmerId={}",
+                milestone.getId(),
+                milestone.getStatus(),
+                milestone.getFarmer() != null ? milestone.getFarmer().getUserId() : null);
 
-    ensurePending(milestone);
+        ensurePending(milestone);
 
-    User auditor = userRepository.findById(auditorId)
-            .orElseThrow(() -> new ResourceNotFoundException("Auditor not found: " + auditorId));
+        User auditor = userRepository.findById(auditorId)
+                .orElseThrow(() -> new ResourceNotFoundException("Auditor not found: " + auditorId));
 
-    milestone.setStatus(MilestoneStatus.APPROVED);
-    milestone.setReviewedBy(auditor);
-    milestone.setReviewedAt(LocalDateTime.now());
-    milestone.setRejectionReason(null);
+        milestone.setStatus(MilestoneStatus.APPROVED);
+        milestone.setReviewedBy(auditor);
+        milestone.setReviewedAt(LocalDateTime.now());
+        milestone.setRejectionReason(null);
 
-    log.info("Before syncProgress for milestoneId={}", milestoneId);
-    syncProgress(milestone);
+        log.info("Before syncProgress for milestoneId={}", milestoneId);
+        syncProgress(milestone);
 
-    log.info("Before milestone save for milestoneId={}", milestoneId);
-    milestoneRepository.save(milestone);
+        log.info("Before milestone save for milestoneId={}", milestoneId);
+        milestoneRepository.save(milestone);
 
-        // CHC-207-2: record the approval action in the audit log
         auditLogService.log(
                 AuditActionType.APPROVED,
                 milestoneId,
@@ -113,7 +111,7 @@ public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId
 
         log.info("Milestone approved successfully milestoneId={}", milestoneId);
         return toDetailResponse(milestone);
-}
+    }
 
     @Override
     public MilestoneDetailResponse rejectMilestone(Long milestoneId, Long auditorId, String reason) {
@@ -134,14 +132,12 @@ public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId
         milestone.setRejectionReason(cleanedReason);
         milestoneRepository.save(milestone);
 
-       // CHC-207-2: record the rejection action in the audit log
         auditLogService.log(
                 AuditActionType.REJECTED,
                 milestoneId,
                 milestone.getFarmer().getFullName(),
                 auditorId
         );
-
 
         return toDetailResponse(milestone);
     }
@@ -182,6 +178,54 @@ public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId
                 .toList();
     }
 
+    /**
+     * Appends new Supabase Storage URLs to the milestone's evidence file list.
+     *
+     * AC-4: links uploaded file URLs to the milestone record in the database.
+     *
+     * Business rules enforced:
+     *  - The milestone must belong to the calling farmer (prevents cross-farmer tampering).
+     *  - The milestone must still be PENDING (evidence cannot be added after review).
+     *  - The incoming URL list must not be empty.
+     */
+    @Override
+    public MilestoneDetailResponse attachEvidenceFiles(Long milestoneId, Long farmerUserId, List<String> fileUrls) {
+        if (fileUrls == null || fileUrls.isEmpty()) {
+            throw new BadRequestException("At least one file URL must be provided.");
+        }
+
+        Milestone milestone = loadMilestone(milestoneId);
+
+        // Ownership check — only the farmer who created the milestone may attach files
+        if (!milestone.getFarmer().getUserId().equals(farmerUserId)) {
+            throw new ResourceNotFoundException("Milestone not found for the current farmer: " + milestoneId);
+        }
+
+        // Evidence can only be added while the milestone is still awaiting review
+        if (milestone.getStatus() != MilestoneStatus.PENDING) {
+            throw new ConflictException("Evidence can only be uploaded to a PENDING milestone.");
+        }
+
+        // Read the existing list of URLs (if any), append the new ones, and persist
+        List<String> existingUrls = parseUrlList(milestone.getEvidenceFilesJson());
+        List<String> mergedUrls = new ArrayList<>(existingUrls);
+        mergedUrls.addAll(fileUrls);
+
+        try {
+            milestone.setEvidenceFilesJson(objectMapper.writeValueAsString(mergedUrls));
+        } catch (Exception e) {
+            log.error("Failed to serialize evidence file URLs for milestoneId={}", milestoneId, e);
+            throw new BadRequestException("Failed to save evidence file references. Please try again.");
+        }
+
+        milestoneRepository.save(milestone);
+        log.info("Attached {} evidence file(s) to milestoneId={}", fileUrls.size(), milestoneId);
+
+        return toDetailResponse(milestone);
+    }
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
     private Milestone loadMilestone(Long milestoneId) {
         return milestoneRepository.findByIdWithRelations(milestoneId)
                 .orElseThrow(() -> new ResourceNotFoundException("Milestone not found: " + milestoneId));
@@ -202,30 +246,30 @@ public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId
                 ));
     }
 
-   private void syncProgress(Milestone milestone) {
-    log.info("syncProgress start milestoneId={}, farmerId={}",
-            milestone.getId(),
-            milestone.getFarmer().getUserId());
+    private void syncProgress(Milestone milestone) {
+        log.info("syncProgress start milestoneId={}, farmerId={}",
+                milestone.getId(),
+                milestone.getFarmer().getUserId());
 
-    Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
-    log.info("Resolved project id={}, name={}", project.getId(), project.getProjectName());
+        Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
+        log.info("Resolved project id={}, name={}", project.getId(), project.getProjectName());
 
-    project.setProgress(milestone.getProgressPercentage().doubleValue());
-    projectRepository.save(project);
+        project.setProgress(milestone.getProgressPercentage().doubleValue());
+        projectRepository.save(project);
 
-    List<Land> lands = landRepository.findByProjectNameIgnoreCase(project.getProjectName());
-    log.info("Found {} land rows for projectName={}", lands.size(), project.getProjectName());
+        List<Land> lands = landRepository.findByProjectNameIgnoreCase(project.getProjectName());
+        log.info("Found {} land rows for projectName={}", lands.size(), project.getProjectName());
 
-    for (Land land : lands) {
-        land.setProgressPercentage(milestone.getProgressPercentage());
+        for (Land land : lands) {
+            land.setProgressPercentage(milestone.getProgressPercentage());
+        }
+
+        if (!lands.isEmpty()) {
+            landRepository.saveAll(lands);
+        }
+
+        log.info("syncProgress complete milestoneId={}", milestone.getId());
     }
-
-    if (!lands.isEmpty()) {
-        landRepository.saveAll(lands);
-    }
-
-    log.info("syncProgress complete milestoneId={}", milestone.getId());
-}
 
     private MilestoneSummaryResponse toSummaryResponse(Milestone milestone) {
         Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
@@ -261,7 +305,18 @@ public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId
         );
     }
 
+    /** Parses evidenceFilesJson into EvidenceFileResponse DTOs for the API response. */
     private List<EvidenceFileResponse> parseEvidenceFiles(String evidenceFilesJson) {
+        return parseUrlList(evidenceFilesJson).stream()
+                .map(this::toEvidenceFile)
+                .toList();
+    }
+
+    /**
+     * Parses the raw JSON string into a plain list of URL strings.
+     * Falls back to comma-split for legacy data that was not stored as JSON.
+     */
+    private List<String> parseUrlList(String evidenceFilesJson) {
         if (evidenceFilesJson == null || evidenceFilesJson.isBlank()) {
             return Collections.emptyList();
         }
@@ -270,13 +325,14 @@ public MilestoneDetailResponse approveMilestone(Long milestoneId, Long auditorId
             List<String> urls = objectMapper.readValue(evidenceFilesJson, new TypeReference<List<String>>() {});
             return urls.stream()
                     .filter(url -> url != null && !url.isBlank())
-                    .map(this::toEvidenceFile)
                     .toList();
         } catch (Exception ignored) {
-            List<EvidenceFileResponse> files = new ArrayList<>();
+            // Legacy fallback: comma-separated list
+            List<String> files = new ArrayList<>();
             for (String url : evidenceFilesJson.split(",")) {
-                if (!url.isBlank()) {
-                    files.add(toEvidenceFile(url.trim()));
+                String trimmed = url.trim();
+                if (!trimmed.isBlank()) {
+                    files.add(trimmed);
                 }
             }
             return files;
