@@ -6,6 +6,7 @@ import CHC.Team.Ceylon.Harvest.Capital.entity.User;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
+import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,6 +38,9 @@ class FarmerDashboardServiceImplTest {
 
     @Mock
     private MilestoneService milestoneService;
+
+    @Mock
+    private LandRepository landRepository;
 
     @InjectMocks
     private FarmerDashboardServiceImpl farmerDashboardService;
