@@ -77,6 +77,8 @@ class FarmerDashboardServiceImplTest {
         given(farmerApplicationRepository.findTopByUserUserIdOrderBySubmittedAtDesc(userId))
                 .willReturn(Optional.of(latestApplication));
         given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
+        given(landRepository.findByFarmerUserUserIdOrderByCreatedAtDesc(userId))
+                .willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);
 
@@ -111,6 +113,8 @@ class FarmerDashboardServiceImplTest {
         given(farmerApplicationRepository.findTopByUserUserIdOrderBySubmittedAtDesc(userId))
                 .willReturn(Optional.of(latestApplication));
         given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
+        given(landRepository.findByFarmerUserUserIdOrderByCreatedAtDesc(userId))
+                .willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);
 
@@ -132,6 +136,8 @@ class FarmerDashboardServiceImplTest {
         given(farmerApplicationRepository.findTopByUserUserIdOrderBySubmittedAtDesc(userId))
                 .willReturn(Optional.empty());
         given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
+        given(landRepository.findByFarmerUserUserIdOrderByCreatedAtDesc(userId))
+                .willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);
 
