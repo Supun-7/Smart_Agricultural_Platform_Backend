@@ -9,6 +9,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 import java.time.LocalDateTime;
 
@@ -57,6 +59,13 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleMaxUploadSize(MaxUploadSizeExceededException ex) {
+        log.warn("Upload size exceeded", ex);
+        return build(HttpStatus.BAD_REQUEST,
+                "File size exceeds the 5 MB limit. Please upload a smaller file.");
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiErrorResponse> handleRuntime(RuntimeException ex) {
         log.error("Unhandled runtime exception", ex);
@@ -64,8 +73,27 @@ public class GlobalExceptionHandler {
                 ex.getMessage() != null ? ex.getMessage() : "Internal server error");
     }
 
+    /**
+     * Fallback for all other uncaught exceptions.
+     * Ensures Postman always receives a consistent JSON error response.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiErrorResponse> handleGenericException(Exception ex) {
+        log.error("Unhandled exception caught globally", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR,
+                ex.getMessage() != null ? ex.getMessage() : "Unexpected error occurred");
+    }
+
+    // ── Helper ────────────────────────────────────────────────────────────────
     private ResponseEntity<ApiErrorResponse> build(HttpStatus status, String message) {
         return ResponseEntity.status(status)
                 .body(new ApiErrorResponse(message, LocalDateTime.now()));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiErrorResponse> handleMissingPart(MissingServletRequestPartException ex) {
+        log.warn("Missing multipart part: {}", ex.getRequestPartName());
+        return build(HttpStatus.BAD_REQUEST,
+                "Required file part '" + ex.getRequestPartName() + "' is missing. Please attach at least one file.");
     }
 }
