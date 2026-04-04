@@ -39,7 +39,6 @@ class AuditorHistoryControllerTest {
     void setUp() {
         AuditorHistoryController controller = new AuditorHistoryController(auditLogService);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
-                .setControllerAdvice(new GlobalExceptionHandler())
                 .build();
     }
 
