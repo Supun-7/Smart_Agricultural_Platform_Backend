@@ -16,7 +16,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/investor")
-@CrossOrigin(origins = "*")
 public class InvestorController {
 
     private final UserRepository userRepository;

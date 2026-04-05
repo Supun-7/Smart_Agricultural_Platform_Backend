@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/gate")
-@CrossOrigin(origins = "*")
 public class GateController {
 
     private final GateService gateService;

@@ -22,7 +22,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping({"/api/farmer", "/farmer"})
-@CrossOrigin(origins = "*")
 public class FarmerController {
 
     private final UserRepository userRepository;

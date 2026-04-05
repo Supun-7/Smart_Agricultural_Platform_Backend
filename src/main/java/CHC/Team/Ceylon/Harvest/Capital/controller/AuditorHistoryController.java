@@ -21,7 +21,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/auditor/history")
-@CrossOrigin(origins = "*")
 public class AuditorHistoryController {
 
     private final AuditLogService auditLogService;

@@ -33,7 +33,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/admin")
-@CrossOrigin(origins = "*")
 public class AdminDashboardController {
 
     private final AdminDashboardService adminDashboardService;

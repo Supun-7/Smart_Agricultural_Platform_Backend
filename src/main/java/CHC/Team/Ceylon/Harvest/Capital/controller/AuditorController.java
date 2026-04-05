@@ -20,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auditor")
-@CrossOrigin(origins = "*")
 public class AuditorController {
 
     private final UserRepository userRepository;
