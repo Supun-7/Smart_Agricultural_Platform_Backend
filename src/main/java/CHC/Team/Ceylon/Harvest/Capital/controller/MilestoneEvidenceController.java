@@ -23,7 +23,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/farmer/milestones")
-@CrossOrigin(origins = "*")
 public class MilestoneEvidenceController {
 
     private static final Logger log = LoggerFactory.getLogger(MilestoneEvidenceController.class);

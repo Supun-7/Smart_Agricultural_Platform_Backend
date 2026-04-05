@@ -13,7 +13,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auditor/milestones")
-@CrossOrigin(origins = "*")
 public class MilestoneAuditorController {
 
     private final MilestoneService milestoneService;
