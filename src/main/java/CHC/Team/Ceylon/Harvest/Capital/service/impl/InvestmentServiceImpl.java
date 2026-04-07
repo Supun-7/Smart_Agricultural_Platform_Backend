@@ -123,10 +123,16 @@ public class InvestmentServiceImpl implements InvestmentService {
                 investment.getInvestmentId(),
                 land.getLandId(),
                 land.getProjectName(),
+                land.getLocation(),
+                land.getCropType(),
+                land.getSizeAcres(),
+                land.getFarmerUser() != null ? land.getFarmerUser().getFullName() : null,
                 amount,
                 newBalance,
                 wallet.getCurrency(),
                 ref,
+                "0x" + UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", ""),
+                "0x" + (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "")).substring(0, 40),
                 investment.getInvestmentDate());
     }
 }

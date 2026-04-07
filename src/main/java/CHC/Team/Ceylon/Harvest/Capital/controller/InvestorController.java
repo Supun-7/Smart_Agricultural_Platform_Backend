@@ -1,19 +1,25 @@
 package CHC.Team.Ceylon.Harvest.Capital.controller;
 
 import CHC.Team.Ceylon.Harvest.Capital.entity.KycSubmission;
+import CHC.Team.Ceylon.Harvest.Capital.entity.Land;
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
+import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
+import CHC.Team.Ceylon.Harvest.Capital.exception.BadRequestException;
+import CHC.Team.Ceylon.Harvest.Capital.exception.ResourceNotFoundException;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestmentService;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
 import CHC.Team.Ceylon.Harvest.Capital.dto.investment.InvestRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -22,6 +28,7 @@ public class InvestorController {
 
     private final UserRepository userRepository;
     private final KycSubmissionRepository kycSubmissionRepository;
+    private final LandRepository landRepository;
     private final JwtUtil jwtUtil;
     private final InvestorDashboardService dashboardService;
     private final InvestmentService investmentService;
@@ -29,11 +36,13 @@ public class InvestorController {
     public InvestorController(
             UserRepository userRepository,
             KycSubmissionRepository kycSubmissionRepository,
+            LandRepository landRepository,
             JwtUtil jwtUtil,
             InvestorDashboardService dashboardService,
             InvestmentService investmentService) {
         this.userRepository = userRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
+        this.landRepository = landRepository;
         this.jwtUtil = jwtUtil;
         this.dashboardService = dashboardService;
         this.investmentService = investmentService;
@@ -159,6 +168,41 @@ public class InvestorController {
             @RequestHeader("Authorization") String authHeader) {
         Long userId = extractUserId(authHeader);
         return ResponseEntity.ok(dashboardService.getReports(userId));
+    }
+
+    // ── GET /api/investor/lands/{landId} ─────────────────────────────────
+    @GetMapping("/lands/{landId}")
+    @RequiredRole(Role.INVESTOR)
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getLandDetail(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long landId) {
+
+        Land land = landRepository.findById(landId)
+                .orElseThrow(() -> new ResourceNotFoundException("Land not found: " + landId));
+
+        if (!Boolean.TRUE.equals(land.getIsActive())) {
+            throw new BadRequestException("This land is not currently available for investment.");
+        }
+
+        Map<String, Object> detail = new HashMap<>();
+        detail.put("landId",             land.getLandId());
+        detail.put("projectName",        land.getProjectName());
+        detail.put("location",           land.getLocation());
+        detail.put("totalValue",         land.getTotalValue());
+        detail.put("minimumInvestment",  land.getMinimumInvestment());
+        detail.put("progressPercentage", land.getProgressPercentage());
+        detail.put("sizeAcres",          land.getSizeAcres());
+        detail.put("cropType",           land.getCropType());
+        detail.put("description",        land.getDescription());
+        detail.put("imageUrls",          land.getImageUrls());
+        detail.put("farmerName",         land.getFarmerUser() != null
+                                             ? land.getFarmerUser().getFullName() : null);
+        detail.put("farmerId",           land.getFarmerUser() != null
+                                             ? land.getFarmerUser().getUserId() : null);
+        detail.put("createdAt",          land.getCreatedAt());
+        detail.put("isActive",           land.getIsActive());
+        return ResponseEntity.ok(detail);
     }
 
     // ── POST /api/investor/lands/{landId}/invest ──────────────────────────
