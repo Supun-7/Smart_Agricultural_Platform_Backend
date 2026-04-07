@@ -8,7 +8,9 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestmentService;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
+import CHC.Team.Ceylon.Harvest.Capital.dto.investment.InvestRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,16 +24,19 @@ public class InvestorController {
     private final KycSubmissionRepository kycSubmissionRepository;
     private final JwtUtil jwtUtil;
     private final InvestorDashboardService dashboardService;
+    private final InvestmentService investmentService;
 
     public InvestorController(
             UserRepository userRepository,
             KycSubmissionRepository kycSubmissionRepository,
             JwtUtil jwtUtil,
-            InvestorDashboardService dashboardService) {
+            InvestorDashboardService dashboardService,
+            InvestmentService investmentService) {
         this.userRepository = userRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
         this.jwtUtil = jwtUtil;
         this.dashboardService = dashboardService;
+        this.investmentService = investmentService;
     }
 
     private Long extractUserId(String authHeader) {
@@ -154,6 +159,18 @@ public class InvestorController {
             @RequestHeader("Authorization") String authHeader) {
         Long userId = extractUserId(authHeader);
         return ResponseEntity.ok(dashboardService.getReports(userId));
+    }
+
+    // ── POST /api/investor/lands/{landId}/invest ──────────────────────────
+    @PostMapping("/lands/{landId}/invest")
+    @RequiredRole(Role.INVESTOR)
+    public ResponseEntity<?> invest(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable Long landId,
+            @RequestBody InvestRequest request) {
+
+        Long userId = extractUserId(authHeader);
+        return ResponseEntity.ok(investmentService.invest(userId, landId, request));
     }
 
     // ── KYC Request DTO — full form fields ───────────────────────────────
