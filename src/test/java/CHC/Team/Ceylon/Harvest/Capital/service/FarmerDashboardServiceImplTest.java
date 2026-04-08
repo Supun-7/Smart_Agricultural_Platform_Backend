@@ -9,6 +9,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
+import CHC.Team.Ceylon.Harvest.Capital.repository.InvestmentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,6 +42,9 @@ class FarmerDashboardServiceImplTest {
 
     @Mock
     private LandRepository landRepository;
+
+    @Mock
+    private InvestmentRepository investmentRepository;
 
     @InjectMocks
     private FarmerDashboardServiceImpl farmerDashboardService;
@@ -79,6 +83,8 @@ class FarmerDashboardServiceImplTest {
         given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
         given(landRepository.findByFarmerUserUserIdOrderByCreatedAtDesc(userId))
                 .willReturn(List.of());
+        given(investmentRepository.findAllByFarmerUserIdWithInvestor(userId))
+                .willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);
 
@@ -115,6 +121,8 @@ class FarmerDashboardServiceImplTest {
         given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
         given(landRepository.findByFarmerUserUserIdOrderByCreatedAtDesc(userId))
                 .willReturn(List.of());
+        given(investmentRepository.findAllByFarmerUserIdWithInvestor(userId))
+                .willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);
 
@@ -137,6 +145,8 @@ class FarmerDashboardServiceImplTest {
                 .willReturn(Optional.empty());
         given(milestoneService.getFarmerMilestones(userId)).willReturn(List.of());
         given(landRepository.findByFarmerUserUserIdOrderByCreatedAtDesc(userId))
+                .willReturn(List.of());
+        given(investmentRepository.findAllByFarmerUserIdWithInvestor(userId))
                 .willReturn(List.of());
 
         Map<String, Object> response = farmerDashboardService.getFarmerDashboard(userId);

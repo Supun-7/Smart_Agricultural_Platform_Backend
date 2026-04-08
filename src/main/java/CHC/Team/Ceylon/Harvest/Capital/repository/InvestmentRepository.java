@@ -11,25 +11,40 @@ import java.util.List;
 
 public interface InvestmentRepository extends JpaRepository<Investment, Long> {
 
-        @Query("SELECT i FROM Investment i JOIN FETCH i.land WHERE i.investor.userId = :userId")
-        List<Investment> findAllByUserIdWithLand(@Param("userId") Long userId);
+    // ── Investor queries ──────────────────────────────────────────────────────
 
-        @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i WHERE i.investor.userId = :userId")
-        BigDecimal sumTotalByUserId(@Param("userId") Long userId);
+    @Query("SELECT i FROM Investment i JOIN FETCH i.land WHERE i.investor.userId = :userId")
+    List<Investment> findAllByUserIdWithLand(@Param("userId") Long userId);
 
-        @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i WHERE i.investor.userId = :userId AND i.status = :status")
-        BigDecimal sumByUserIdAndStatus(@Param("userId") Long userId, @Param("status") InvestmentStatus status);
+    @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i WHERE i.investor.userId = :userId")
+    BigDecimal sumTotalByUserId(@Param("userId") Long userId);
 
-        @Query("SELECT COUNT(DISTINCT i.land.landId) FROM Investment i WHERE i.investor.userId = :userId")
-        Long countDistinctLandsByUserId(@Param("userId") Long userId);
+    @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i WHERE i.investor.userId = :userId AND i.status = :status")
+    BigDecimal sumByUserIdAndStatus(@Param("userId") Long userId, @Param("status") InvestmentStatus status);
 
-        @Query("SELECT COUNT(DISTINCT i.land.landId) FROM Investment i WHERE i.investor.userId = :userId AND i.status = 'ACTIVE'")
-        Long countActiveLandsByUserId(@Param("userId") Long userId);
+    @Query("SELECT COUNT(DISTINCT i.land.landId) FROM Investment i WHERE i.investor.userId = :userId")
+    Long countDistinctLandsByUserId(@Param("userId") Long userId);
 
-        @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i WHERE i.land.landId = :landId")
-        BigDecimal sumAmountByLandId(@Param("landId") Long landId);
+    @Query("SELECT COUNT(DISTINCT i.land.landId) FROM Investment i WHERE i.investor.userId = :userId AND i.status = 'ACTIVE'")
+    Long countActiveLandsByUserId(@Param("userId") Long userId);
 
-        @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i")
-        BigDecimal sumTotalInvestmentPlatformWide();
+    // ── Farmer queries ────────────────────────────────────────────────────────
 
+    /**
+     * Returns all investments on lands owned by a given farmer.
+     * Used by FarmerDashboardServiceImpl to show investors and blockchain links
+     * for each land the farmer has listed.
+     */
+    @Query("SELECT i FROM Investment i JOIN FETCH i.investor JOIN FETCH i.land " +
+           "WHERE i.land.farmerUser.userId = :farmerUserId " +
+           "ORDER BY i.investmentDate DESC")
+    List<Investment> findAllByFarmerUserIdWithInvestor(@Param("farmerUserId") Long farmerUserId);
+
+    // ── Platform-wide queries ─────────────────────────────────────────────────
+
+    @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i WHERE i.land.landId = :landId")
+    BigDecimal sumAmountByLandId(@Param("landId") Long landId);
+
+    @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i")
+    BigDecimal sumTotalInvestmentPlatformWide();
 }

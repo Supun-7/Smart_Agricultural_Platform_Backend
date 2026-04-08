@@ -38,51 +38,49 @@ public class Investment {
     @JoinColumn(name = "land_id")
     private Land land;
 
-    public Long getInvestmentId() {
-        return investmentId;
-    }
+    /**
+     * On-chain transaction hash from BlockchainService.createInvestmentContract().
+     * Format: "0x" + 64 hex chars.
+     * On MOCK profile: UUID-based fake hash.
+     * On POLYGON_AMOY profile: real Amoy testnet tx hash.
+     *
+     * Gas is always paid by the CHC system wallet — no user wallet needed.
+     * Viewable at: https://amoy.polygonscan.com/tx/{blockchainTxHash}
+     */
+    @Column(name = "blockchain_tx_hash", length = 66)
+    private String blockchainTxHash;
 
-    public void setInvestmentId(Long investmentId) {
-        this.investmentId = investmentId;
-    }
+    /**
+     * On-chain contract reference for this investment.
+     * On the data-tx pattern this equals blockchainTxHash.
+     * Used by MilestoneServiceImpl to link milestone approval events back to this investment.
+     */
+    @Column(name = "contract_address", length = 66)
+    private String contractAddress;
 
-    public BigDecimal getAmountInvested() {
-        return amountInvested;
-    }
+    // ── Getters / Setters ────────────────────────────────────────────────────
 
-    public void setAmountInvested(BigDecimal amountInvested) {
-        this.amountInvested = amountInvested;
-    }
+    public Long getInvestmentId() { return investmentId; }
+    public void setInvestmentId(Long investmentId) { this.investmentId = investmentId; }
 
-    public InvestmentStatus getStatus() {
-        return status;
-    }
+    public BigDecimal getAmountInvested() { return amountInvested; }
+    public void setAmountInvested(BigDecimal amountInvested) { this.amountInvested = amountInvested; }
 
-    public void setStatus(InvestmentStatus status) {
-        this.status = status;
-    }
+    public InvestmentStatus getStatus() { return status; }
+    public void setStatus(InvestmentStatus status) { this.status = status; }
 
-    public LocalDateTime getInvestmentDate() {
-        return investmentDate;
-    }
+    public LocalDateTime getInvestmentDate() { return investmentDate; }
+    public void setInvestmentDate(LocalDateTime investmentDate) { this.investmentDate = investmentDate; }
 
-    public void setInvestmentDate(LocalDateTime investmentDate) {
-        this.investmentDate = investmentDate;
-    }
+    public User getInvestor() { return investor; }
+    public void setInvestor(User investor) { this.investor = investor; }
 
-    public User getInvestor() {
-        return investor;
-    }
+    public Land getLand() { return land; }
+    public void setLand(Land land) { this.land = land; }
 
-    public void setInvestor(User investor) {
-        this.investor = investor;
-    }
+    public String getBlockchainTxHash() { return blockchainTxHash; }
+    public void setBlockchainTxHash(String blockchainTxHash) { this.blockchainTxHash = blockchainTxHash; }
 
-    public Land getLand() {
-        return land;
-    }
-
-    public void setLand(Land land) {
-        this.land = land;
-    }
+    public String getContractAddress() { return contractAddress; }
+    public void setContractAddress(String contractAddress) { this.contractAddress = contractAddress; }
 }
