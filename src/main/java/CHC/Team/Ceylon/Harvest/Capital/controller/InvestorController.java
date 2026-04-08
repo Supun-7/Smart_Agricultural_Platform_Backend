@@ -170,6 +170,17 @@ public class InvestorController {
         return ResponseEntity.ok(dashboardService.getReports(userId));
     }
 
+    // ── GET /api/investor/contracts ───────────────────────────────────────
+    // Returns all investment contracts for the authenticated investor.
+    // Each entry includes blockchain tx hash, contract address, and polygonScanUrl.
+    @GetMapping("/contracts")
+    @RequiredRole(Role.INVESTOR)
+    public ResponseEntity<?> getContracts(
+            @RequestHeader("Authorization") String authHeader) {
+        Long userId = extractUserId(authHeader);
+        return ResponseEntity.ok(dashboardService.getContracts(userId));
+    }
+
     // ── GET /api/investor/lands/{landId} ─────────────────────────────────
     @GetMapping("/lands/{landId}")
     @RequiredRole(Role.INVESTOR)

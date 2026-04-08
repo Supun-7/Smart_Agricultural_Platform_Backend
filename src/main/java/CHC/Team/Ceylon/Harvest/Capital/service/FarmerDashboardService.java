@@ -14,4 +14,8 @@ public interface FarmerDashboardService {
     List<LandResponse> getFarmerLands(Long userId);
 
     LandResponse updateLandStatus(Long userId, Long landId, boolean isActive);
+
+    // Returns all investment contracts received on this farmer's lands.
+    // Used by the farmer contracts page (Sinhala UI — no blockchain links shown).
+    Map<String, Object> getFarmerContracts(Long userId);
 }

@@ -194,6 +194,18 @@ public class FarmerController {
         ));
     }
 
+    // ── GET /api/farmer/contracts ─────────────────────────────────────────
+    // Returns all investments received on the farmer's lands — shown on the
+    // farmer contracts page in Sinhala. Blockchain links are excluded from
+    // the frontend display for farmers (handled in the UI layer).
+    @GetMapping("/contracts")
+    @RequiredRole(Role.FARMER)
+    public ResponseEntity<?> getFarmerContracts(
+            @RequestHeader("Authorization") String authHeader) {
+        Long userId = extractUserId(authHeader);
+        return ResponseEntity.ok(farmerDashboardService.getFarmerContracts(userId));
+    }
+
     public record FarmerApplicationRequest(
             String farmerName,
             String surname,

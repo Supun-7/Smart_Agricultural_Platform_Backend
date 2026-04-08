@@ -16,7 +16,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.LedgerRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.WalletRepository;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestmentService;
-import CHC.Team.Ceylon.Harvest.Capital.service.payment.PaymentGateway;
+import CHC.Team.Ceylon.Harvest.Capital.service.blockchain.BlockchainService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,17 +32,20 @@ public class InvestmentServiceImpl implements InvestmentService {
     private final WalletRepository     walletRepository;
     private final LedgerRepository     ledgerRepository;
     private final InvestmentRepository investmentRepository;
+    private final BlockchainService    blockchainService;   // injected: mock or real
 
     public InvestmentServiceImpl(UserRepository userRepository,
                                  LandRepository landRepository,
                                  WalletRepository walletRepository,
                                  LedgerRepository ledgerRepository,
-                                 InvestmentRepository investmentRepository) {
+                                 InvestmentRepository investmentRepository,
+                                 BlockchainService blockchainService) {
         this.userRepository       = userRepository;
         this.landRepository       = landRepository;
         this.walletRepository     = walletRepository;
         this.ledgerRepository     = ledgerRepository;
         this.investmentRepository = investmentRepository;
+        this.blockchainService    = blockchainService;
     }
 
     @Override
@@ -81,7 +84,7 @@ public class InvestmentServiceImpl implements InvestmentService {
                     land.getMinimumInvestment() + ".");
         }
 
-        // ── Resolve wallet ────────────────────────────────────────────────────
+        // ── Resolve CHC wallet ────────────────────────────────────────────────
         Wallet wallet = walletRepository.findByUserUserId(investorId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Wallet not found for investor: " + investorId));
@@ -94,29 +97,44 @@ public class InvestmentServiceImpl implements InvestmentService {
                     ". Please deposit funds first.");
         }
 
-        // ── Debit wallet ──────────────────────────────────────────────────────
+        // ── Debit CHC wallet ──────────────────────────────────────────────────
         BigDecimal newBalance = wallet.getBalance().subtract(amount);
         wallet.setBalance(newBalance);
         walletRepository.save(wallet);
 
-        // ── Write ledger entry (INVESTMENT debit) ─────────────────────────────
+        // ── Write ledger entry ────────────────────────────────────────────────
         String ref = "INV-" + UUID.randomUUID().toString().toUpperCase().replace("-", "").substring(0, 12);
         Ledger ledgerEntry = new Ledger(
                 wallet,
                 Ledger.TransactionType.INVESTMENT,
                 amount,
                 newBalance,
-                "WALLET",
+                blockchainService.networkName(),
                 ref);
         ledgerRepository.save(ledgerEntry);
 
-        // ── Create investment record ──────────────────────────────────────────
+        // ── Deploy investment contract on Polygon Amoy ────────────────────────
+        // The CHC system wallet pays all gas — investors & farmers need NO crypto wallet.
+        // We pass CHC platform user IDs; no Ethereum addresses are needed from users.
+        Long farmerId = land.getFarmerUser() != null ? land.getFarmerUser().getUserId() : 0L;
+
+        BlockchainService.ContractResult chain =
+                blockchainService.createInvestmentContract(investorId, farmerId, land.getLandId(), amount);
+
+        // If blockchain call fails, the investment is still recorded in DB.
+        // The error is visible in the response so it can be retried later.
+        String txHash       = chain.success() ? chain.txHash()         : "BLOCKCHAIN_ERROR:" + chain.errorMessage();
+        String contractAddr = chain.success() ? chain.contractAddress() : "PENDING";
+
+        // ── Persist investment with on-chain references ───────────────────────
         Investment investment = new Investment();
         investment.setInvestor(investor);
         investment.setLand(land);
         investment.setAmountInvested(amount);
         investment.setStatus(Investment.InvestmentStatus.ACTIVE);
         investment.setInvestmentDate(LocalDateTime.now());
+        investment.setBlockchainTxHash(txHash);
+        investment.setContractAddress(contractAddr);
         investmentRepository.save(investment);
 
         return new InvestResponse(
@@ -131,8 +149,9 @@ public class InvestmentServiceImpl implements InvestmentService {
                 newBalance,
                 wallet.getCurrency(),
                 ref,
-                "0x" + UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", ""),
-                "0x" + (UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", "")).substring(0, 40),
+                txHash,
+                contractAddr,
+                blockchainService.networkName(),
                 investment.getInvestmentDate());
     }
 }

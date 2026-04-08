@@ -3,25 +3,30 @@ package CHC.Team.Ceylon.Harvest.Capital.service.impl;
 import CHC.Team.Ceylon.Harvest.Capital.dto.EvidenceFileResponse;
 import CHC.Team.Ceylon.Harvest.Capital.dto.MilestoneDetailResponse;
 import CHC.Team.Ceylon.Harvest.Capital.dto.MilestoneSummaryResponse;
+import CHC.Team.Ceylon.Harvest.Capital.entity.Investment;
 import CHC.Team.Ceylon.Harvest.Capital.entity.Land;
 import CHC.Team.Ceylon.Harvest.Capital.entity.Milestone;
 import CHC.Team.Ceylon.Harvest.Capital.entity.Project;
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
+import CHC.Team.Ceylon.Harvest.Capital.enums.AuditActionType;
 import CHC.Team.Ceylon.Harvest.Capital.enums.MilestoneStatus;
 import CHC.Team.Ceylon.Harvest.Capital.exception.BadRequestException;
 import CHC.Team.Ceylon.Harvest.Capital.exception.ConflictException;
 import CHC.Team.Ceylon.Harvest.Capital.exception.ResourceNotFoundException;
+import CHC.Team.Ceylon.Harvest.Capital.repository.InvestmentRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.MilestoneRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
-import CHC.Team.Ceylon.Harvest.Capital.service.MilestoneService;
-import CHC.Team.Ceylon.Harvest.Capital.enums.AuditActionType;
 import CHC.Team.Ceylon.Harvest.Capital.service.AuditLogService;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import CHC.Team.Ceylon.Harvest.Capital.service.MilestoneService;
+import CHC.Team.Ceylon.Harvest.Capital.service.blockchain.BlockchainService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.time.LocalDateTime;
@@ -29,36 +34,39 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
 public class MilestoneServiceImpl implements MilestoneService {
 
-    private final MilestoneRepository milestoneRepository;
-    private final UserRepository userRepository;
-    private final ProjectRepository projectRepository;
-    private final LandRepository landRepository;
-    private final ObjectMapper objectMapper;
-    private final AuditLogService auditLogService;
     private static final Logger log = LoggerFactory.getLogger(MilestoneServiceImpl.class);
 
+    private final MilestoneRepository  milestoneRepository;
+    private final UserRepository       userRepository;
+    private final ProjectRepository    projectRepository;
+    private final LandRepository       landRepository;
+    private final InvestmentRepository investmentRepository;
+    private final ObjectMapper         objectMapper;
+    private final AuditLogService      auditLogService;
+    private final BlockchainService    blockchainService;
 
     public MilestoneServiceImpl(
-            MilestoneRepository milestoneRepository,
-            UserRepository userRepository,
-            ProjectRepository projectRepository,
-            LandRepository landRepository,
-            ObjectMapper objectMapper,
-            AuditLogService auditLogService
-    ) {
-        this.milestoneRepository = milestoneRepository;
-        this.userRepository = userRepository;
-        this.projectRepository = projectRepository;
-        this.landRepository = landRepository;
-        this.objectMapper = objectMapper;
-        this.auditLogService = auditLogService;
+            MilestoneRepository  milestoneRepository,
+            UserRepository       userRepository,
+            ProjectRepository    projectRepository,
+            LandRepository       landRepository,
+            InvestmentRepository investmentRepository,
+            ObjectMapper         objectMapper,
+            AuditLogService      auditLogService,
+            BlockchainService    blockchainService) {
+        this.milestoneRepository  = milestoneRepository;
+        this.userRepository       = userRepository;
+        this.projectRepository    = projectRepository;
+        this.landRepository       = landRepository;
+        this.investmentRepository = investmentRepository;
+        this.objectMapper         = objectMapper;
+        this.auditLogService      = auditLogService;
+        this.blockchainService    = blockchainService;
     }
 
     @Override
@@ -81,11 +89,6 @@ public class MilestoneServiceImpl implements MilestoneService {
         log.info("Approving milestoneId={} by auditorId={}", milestoneId, auditorId);
 
         Milestone milestone = loadMilestone(milestoneId);
-        log.info("Loaded milestone id={}, status={}, farmerId={}",
-                milestone.getId(),
-                milestone.getStatus(),
-                milestone.getFarmer() != null ? milestone.getFarmer().getUserId() : null);
-
         ensurePending(milestone);
 
         User auditor = userRepository.findById(auditorId)
@@ -96,11 +99,14 @@ public class MilestoneServiceImpl implements MilestoneService {
         milestone.setReviewedAt(LocalDateTime.now());
         milestone.setRejectionReason(null);
 
-        log.info("Before syncProgress for milestoneId={}", milestoneId);
         syncProgress(milestone);
-
-        log.info("Before milestone save for milestoneId={}", milestoneId);
         milestoneRepository.save(milestone);
+
+        // ── Record milestone approval on Polygon Amoy ─────────────────────────
+        // For each investment in this farmer's land, post a milestone approval
+        // event on-chain linked back to that investment's contract reference.
+        // Gas is paid by the CHC system wallet — no crypto wallet needed by anyone.
+        recordMilestoneOnChain(milestone);
 
         auditLogService.log(
                 AuditActionType.APPROVED,
@@ -109,7 +115,7 @@ public class MilestoneServiceImpl implements MilestoneService {
                 auditorId
         );
 
-        log.info("Milestone approved successfully milestoneId={}", milestoneId);
+        log.info("Milestone approved milestoneId={}", milestoneId);
         return toDetailResponse(milestone);
     }
 
@@ -178,16 +184,6 @@ public class MilestoneServiceImpl implements MilestoneService {
                 .toList();
     }
 
-    /**
-     * Appends new Supabase Storage URLs to the milestone's evidence file list.
-     *
-     * AC-4: links uploaded file URLs to the milestone record in the database.
-     *
-     * Business rules enforced:
-     *  - The milestone must belong to the calling farmer (prevents cross-farmer tampering).
-     *  - The milestone must still be PENDING (evidence cannot be added after review).
-     *  - The incoming URL list must not be empty.
-     */
     @Override
     public MilestoneDetailResponse attachEvidenceFiles(Long milestoneId, Long farmerUserId, List<String> fileUrls) {
         if (fileUrls == null || fileUrls.isEmpty()) {
@@ -196,19 +192,16 @@ public class MilestoneServiceImpl implements MilestoneService {
 
         Milestone milestone = loadMilestone(milestoneId);
 
-        // Ownership check — only the farmer who created the milestone may attach files
         if (!milestone.getFarmer().getUserId().equals(farmerUserId)) {
             throw new ResourceNotFoundException("Milestone not found for the current farmer: " + milestoneId);
         }
 
-        // Evidence can only be added while the milestone is still awaiting review
         if (milestone.getStatus() != MilestoneStatus.PENDING) {
             throw new ConflictException("Evidence can only be uploaded to a PENDING milestone.");
         }
 
-        // Read the existing list of URLs (if any), append the new ones, and persist
         List<String> existingUrls = parseUrlList(milestone.getEvidenceFilesJson());
-        List<String> mergedUrls = new ArrayList<>(existingUrls);
+        List<String> mergedUrls   = new ArrayList<>(existingUrls);
         mergedUrls.addAll(fileUrls);
 
         try {
@@ -220,8 +213,62 @@ public class MilestoneServiceImpl implements MilestoneService {
 
         milestoneRepository.save(milestone);
         log.info("Attached {} evidence file(s) to milestoneId={}", fileUrls.size(), milestoneId);
-
         return toDetailResponse(milestone);
+    }
+
+    // ── Blockchain helper ─────────────────────────────────────────────────────
+
+    /**
+     * After a milestone is approved, records the event on-chain for every
+     * investment linked to this farmer's land.
+     *
+     * Each on-chain event references the original investment's contractAddress
+     * so the full history (invest → milestone1 → milestone2 → ...) is traceable
+     * on PolygonScan.
+     *
+     * Blockchain failures are logged but do NOT roll back the milestone approval —
+     * the approval is already committed to the DB.
+     */
+    private void recordMilestoneOnChain(Milestone milestone) {
+        Long farmerUserId = milestone.getFarmer().getUserId();
+        int  progressPct  = milestone.getProgressPercentage();
+
+        List<Investment> investments =
+                investmentRepository.findAllByFarmerUserIdWithInvestor(farmerUserId);
+
+        if (investments.isEmpty()) {
+            log.info("[Blockchain] No investments found for farmerUserId={}, skipping on-chain milestone record",
+                    farmerUserId);
+            return;
+        }
+
+        for (Investment inv : investments) {
+            String contractRef = inv.getContractAddress();
+
+            // Skip investments that were created before blockchain integration
+            // (they have no contractAddress yet)
+            if (contractRef == null || contractRef.isBlank()
+                    || contractRef.equals("PENDING")
+                    || contractRef.startsWith("BLOCKCHAIN_ERROR")) {
+                log.warn("[Blockchain] Skipping on-chain milestone for investmentId={} — no valid contractAddress",
+                        inv.getInvestmentId());
+                continue;
+            }
+
+            BlockchainService.ContractResult result =
+                    blockchainService.recordMilestoneApproval(
+                            contractRef,
+                            milestone.getId(),
+                            progressPct);
+
+            if (result.success()) {
+                log.info("[Blockchain] Milestone on-chain | milestoneId={} investmentId={} tx={}",
+                        milestone.getId(), inv.getInvestmentId(), result.txHash());
+            } else {
+                log.error("[Blockchain] Failed to record milestone on-chain | milestoneId={} investmentId={} error={}",
+                        milestone.getId(), inv.getInvestmentId(), result.errorMessage());
+            }
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
@@ -242,28 +289,21 @@ public class MilestoneServiceImpl implements MilestoneService {
                 .stream()
                 .findFirst()
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Project not found for farmer user id: " + farmerUserId
-                ));
+                        "Project not found for farmer user id: " + farmerUserId));
     }
 
     private void syncProgress(Milestone milestone) {
         log.info("syncProgress start milestoneId={}, farmerId={}",
-                milestone.getId(),
-                milestone.getFarmer().getUserId());
+                milestone.getId(), milestone.getFarmer().getUserId());
 
         Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
-        log.info("Resolved project id={}, name={}", project.getId(), project.getProjectName());
-
         project.setProgress(milestone.getProgressPercentage().doubleValue());
         projectRepository.save(project);
 
         List<Land> lands = landRepository.findByProjectNameIgnoreCase(project.getProjectName());
-        log.info("Found {} land rows for projectName={}", lands.size(), project.getProjectName());
-
         for (Land land : lands) {
             land.setProgressPercentage(milestone.getProgressPercentage());
         }
-
         if (!lands.isEmpty()) {
             landRepository.saveAll(lands);
         }
@@ -273,7 +313,6 @@ public class MilestoneServiceImpl implements MilestoneService {
 
     private MilestoneSummaryResponse toSummaryResponse(Milestone milestone) {
         Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
-
         return new MilestoneSummaryResponse(
                 milestone.getId(),
                 milestone.getFarmer().getFullName(),
@@ -287,7 +326,6 @@ public class MilestoneServiceImpl implements MilestoneService {
 
     private MilestoneDetailResponse toDetailResponse(Milestone milestone) {
         Project project = findProjectForFarmer(milestone.getFarmer().getUserId());
-
         return new MilestoneDetailResponse(
                 milestone.getId(),
                 milestone.getFarmer().getFullName(),
@@ -305,35 +343,26 @@ public class MilestoneServiceImpl implements MilestoneService {
         );
     }
 
-    /** Parses evidenceFilesJson into EvidenceFileResponse DTOs for the API response. */
     private List<EvidenceFileResponse> parseEvidenceFiles(String evidenceFilesJson) {
         return parseUrlList(evidenceFilesJson).stream()
                 .map(this::toEvidenceFile)
                 .toList();
     }
 
-    /**
-     * Parses the raw JSON string into a plain list of URL strings.
-     * Falls back to comma-split for legacy data that was not stored as JSON.
-     */
     private List<String> parseUrlList(String evidenceFilesJson) {
         if (evidenceFilesJson == null || evidenceFilesJson.isBlank()) {
             return Collections.emptyList();
         }
-
         try {
             List<String> urls = objectMapper.readValue(evidenceFilesJson, new TypeReference<List<String>>() {});
             return urls.stream()
                     .filter(url -> url != null && !url.isBlank())
                     .toList();
         } catch (Exception ignored) {
-            // Legacy fallback: comma-separated list
             List<String> files = new ArrayList<>();
             for (String url : evidenceFilesJson.split(",")) {
                 String trimmed = url.trim();
-                if (!trimmed.isBlank()) {
-                    files.add(trimmed);
-                }
+                if (!trimmed.isBlank()) files.add(trimmed);
             }
             return files;
         }

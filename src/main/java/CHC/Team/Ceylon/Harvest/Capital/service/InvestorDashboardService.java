@@ -15,4 +15,7 @@ public interface InvestorDashboardService {
 
     // Fills the TODO in /reports
     Map<String, Object> getReports(Long userId);
+
+    // Returns all contracts (investments) for the investor — for the contracts list page
+    Map<String, Object> getContracts(Long userId);
 }
