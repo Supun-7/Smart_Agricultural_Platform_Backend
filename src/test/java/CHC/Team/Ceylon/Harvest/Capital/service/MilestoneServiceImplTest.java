@@ -12,11 +12,13 @@ import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.exception.BadRequestException;
 import CHC.Team.Ceylon.Harvest.Capital.exception.ConflictException;
 import CHC.Team.Ceylon.Harvest.Capital.exception.ResourceNotFoundException;
+import CHC.Team.Ceylon.Harvest.Capital.repository.InvestmentRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.MilestoneRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
-import CHC.Team.Ceylon.Harvest.Capital.service.AuditLogService;
+
+import CHC.Team.Ceylon.Harvest.Capital.service.blockchain.BlockchainService;
 import CHC.Team.Ceylon.Harvest.Capital.service.impl.MilestoneServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -64,7 +66,13 @@ class MilestoneServiceImplTest {
     private LandRepository landRepository;
 
     @Mock
+    private InvestmentRepository investmentRepository;
+
+    @Mock
     private AuditLogService auditLogService;
+
+    @Mock
+    private BlockchainService blockchainService;
 
     private MilestoneServiceImpl milestoneService;
 
@@ -75,9 +83,10 @@ class MilestoneServiceImplTest {
                 userRepository,
                 projectRepository,
                 landRepository,
-                new ObjectMapper()
-        ,
-                auditLogService
+                investmentRepository,
+                new ObjectMapper(),
+                auditLogService,
+                blockchainService
         );
     }
 
