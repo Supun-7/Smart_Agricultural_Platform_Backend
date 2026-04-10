@@ -1,6 +1,7 @@
 package CHC.Team.Ceylon.Harvest.Capital.service;
 
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
+import CHC.Team.Ceylon.Harvest.Capital.enums.AccountStatus;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
@@ -46,12 +47,22 @@ public class UserServiceImpl implements UserService {
             admin.setFullName(defaultAdminFullName);
             admin.setEmail(defaultAdminEmail);
             admin.setPasswordHash(passwordEncoder.encode(defaultAdminPassword));
-            admin.setRole(Role.ADMIN);
+            admin.setRole(Role.SYSTEM_ADMIN);
             admin.setVerificationStatus(VerificationStatus.NOT_SUBMITTED);
+            admin.setAccountStatus(AccountStatus.ACTIVE);
             userRepository.save(admin);
             System.out.println("========================================");
-            System.out.println("Default admin created: " + defaultAdminEmail);
+            System.out.println("Default system admin created: " + defaultAdminEmail);
             System.out.println("========================================");
+        } else {
+            User existingUser = existing.get();
+            if (existingUser.getRole() != Role.SYSTEM_ADMIN) {
+                existingUser.setRole(Role.SYSTEM_ADMIN);
+                userRepository.save(existingUser);
+                System.out.println("========================================");
+                System.out.println("Default admin upgraded to SYSTEM_ADMIN: " + defaultAdminEmail);
+                System.out.println("========================================");
+            }
         }
     }
 
@@ -59,15 +70,26 @@ public class UserServiceImpl implements UserService {
     public User registerUser(User user) {
         String hashedPassword = passwordEncoder.encode(user.getPasswordHash());
         user.setPasswordHash(hashedPassword);
+        // New accounts are always ACTIVE
+        user.setAccountStatus(AccountStatus.ACTIVE);
         return userRepository.save(user);
     }
 
+    /**
+     * AC-4: Returns empty if the account is SUSPENDED so the login
+     * controller can send a clear "Account suspended" error message.
+     */
     @Override
     public Optional<User> login(String email, String password) {
         Optional<User> userOpt = userRepository.findByEmail(email);
         if (userOpt.isPresent()) {
             User user = userOpt.get();
             if (passwordEncoder.matches(password, user.getPasswordHash())) {
+                // AC-4 — suspended users cannot log in
+                if (user.getAccountStatus() == AccountStatus.SUSPENDED) {
+                    // Throw a specific exception the controller can catch
+                    throw new AccountSuspendedException("Your account has been suspended. Please contact the platform administrator.");
+                }
                 return Optional.of(user);
             }
         }
@@ -80,7 +102,6 @@ public class UserServiceImpl implements UserService {
     }
 
     // Google users never use password login
-    // We set a random UUID as password — they always login via Google
     @Override
     public User createGoogleUser(String name, String email, String role) {
         User user = new User();
@@ -94,6 +115,7 @@ public class UserServiceImpl implements UserService {
             user.setRole(Role.INVESTOR);
         }
         user.setVerificationStatus(VerificationStatus.NOT_SUBMITTED);
+        user.setAccountStatus(AccountStatus.ACTIVE);
         return userRepository.save(user);
     }
 
@@ -104,5 +126,12 @@ public class UserServiceImpl implements UserService {
                 user.getRole().name(),
                 user.getVerificationStatus().name()
         );
+    }
+
+    // ── Inner exception for suspended accounts ────────────────────────────────
+    public static class AccountSuspendedException extends RuntimeException {
+        public AccountSuspendedException(String message) {
+            super(message);
+        }
     }
 }

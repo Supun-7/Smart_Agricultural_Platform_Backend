@@ -3,9 +3,11 @@ package CHC.Team.Ceylon.Harvest.Capital;
 import CHC.Team.Ceylon.Harvest.Capital.config.WebConfig;
 import CHC.Team.Ceylon.Harvest.Capital.controller.InvestorController;
 import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
+import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RoleInterceptor;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestmentService;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,12 @@ class InvestorAccessControlWebMvcTest {
 
     @MockitoBean
     private InvestorDashboardService investorDashboardService;
+
+    @MockitoBean
+    private LandRepository landRepository;
+
+    @MockitoBean
+    private InvestmentService investmentService;
 
     @Test
     void investorEndpoint_shouldAllowInvestorRole() throws Exception {

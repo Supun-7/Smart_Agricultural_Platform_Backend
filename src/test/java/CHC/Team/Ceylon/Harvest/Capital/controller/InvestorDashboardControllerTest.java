@@ -1,8 +1,10 @@
 package CHC.Team.Ceylon.Harvest.Capital.controller;
 
 import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
+import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestmentService;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +40,12 @@ class InvestorDashboardControllerTest {
     @Mock
     private InvestorDashboardService investorDashboardService;
 
+    @Mock
+    private LandRepository landRepository;
+
+    @Mock
+    private InvestmentService investmentService;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -45,8 +53,10 @@ class InvestorDashboardControllerTest {
         InvestorController investorController = new InvestorController(
                 userRepository,
                 kycSubmissionRepository,
+                landRepository,
                 jwtUtil,
-                investorDashboardService);
+                investorDashboardService,
+                investmentService);
 
         mockMvc = MockMvcBuilders.standaloneSetup(investorController).build();
     }
