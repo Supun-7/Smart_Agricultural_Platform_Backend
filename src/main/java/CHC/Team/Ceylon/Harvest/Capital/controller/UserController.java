@@ -72,7 +72,49 @@ public class UserController {
         return ResponseEntity.ok(new UserResponse(savedUser));
     }
 
+
+
     // ── POST /api/users/login ─────────────────────────────────────────────────
+// ADMIN / SYSTEM_ADMIN → skip OTP, return JWT immediately.
+// All other roles → Step 1 of 2: validate credentials, send OTP.
+    @PostMapping("/login")
+    public ResponseEntity<?> loginUser(@RequestBody LoginRequest request) {
+        try {
+            Optional<User> userOpt = userService.login(
+                    request.getEmail(),
+                    request.getPassword());
+
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+
+                // Admins always bypass OTP — issue JWT immediately
+                boolean isAdmin = user.getRole() == Role.ADMIN
+                        || user.getRole() == Role.SYSTEM_ADMIN;
+
+                // Existing verified users also bypass OTP — issue JWT immediately
+                if (isAdmin || user.isEmailVerified()) {
+                    String token = jwtUtil.generateToken(
+                            user.getUserId(),
+                            user.getRole().name(),
+                            user.getVerificationStatus().name()
+                    );
+                    return ResponseEntity.ok(new AuthResponse(token, new UserResponse(user)));
+                }
+
+                // New unverified users — send OTP, wait for /verify-otp
+                otpService.generateAndSendOtp(request.getEmail());
+                return ResponseEntity.ok(
+                        new AuthResponse.OtpSentResponse("OTP sent to your email address.", request.getEmail())
+                );
+            } else {
+                return ResponseEntity.status(401).body("Invalid email or password");
+            }
+
+        } catch (UserServiceImpl.AccountSuspendedException ex) {
+            return ResponseEntity.status(403).body(ex.getMessage());
+        }
+    }
+    /*// ── POST /api/users/login ─────────────────────────────────────────────────
     // ── POST /api/users/login ─────────────────────────────────────────────────
     // Step 1 of 2: Validate credentials, then send OTP — no JWT issued yet.
     @PostMapping("/login")
@@ -95,7 +137,7 @@ public class UserController {
         } catch (UserServiceImpl.AccountSuspendedException ex) {
             return ResponseEntity.status(403).body(ex.getMessage());
         }
-    }
+    }*/
 
     // ── POST /api/users/verify-otp ────────────────────────────────────────────
     // Step 2 of 2: Validate OTP and issue JWT on success.
@@ -111,6 +153,10 @@ public class UserController {
         }
 
         // OTP is valid — look up the user and issue JWT (AC-7, AC-8)
+        // OTP is valid — mark email as verified so future logins skip OTP
+        userService.markEmailVerified(request.getEmail());
+
+        // Look up the refreshed user and issue JWT (AC-7, AC-8)
         User user = userService.findByEmail(request.getEmail());
         if (user == null) {
             return ResponseEntity.status(404).body("User not found.");
