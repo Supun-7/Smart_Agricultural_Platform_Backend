@@ -72,9 +72,17 @@ public class UserServiceImpl implements UserService {
         user.setPasswordHash(hashedPassword);
         // New accounts are always ACTIVE
         user.setAccountStatus(AccountStatus.ACTIVE);
+        user.setEmailVerified(false); // New users must verify via OTP on first login
         return userRepository.save(user);
     }
 
+    @Override
+    public void markEmailVerified(String email) {
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setEmailVerified(true);
+            userRepository.save(user);
+        });
+    }
     /**
      * AC-4: Returns empty if the account is SUSPENDED so the login
      * controller can send a clear "Account suspended" error message.
