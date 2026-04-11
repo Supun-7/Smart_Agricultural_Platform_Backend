@@ -10,4 +10,6 @@ public interface UserService {
     User findByEmail(String email);
     User createGoogleUser(String name, String email, String role);
     String generateJwt(User user);
+
+    void markEmailVerified(String email);
 }
