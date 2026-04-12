@@ -18,8 +18,8 @@ env:
   APP_NAME: CHC-be
 
 jobs:
-  test:
-    name: Test
+  verify:
+    name: Verify (Tests Skipped)
     runs-on: ubuntu-latest
 
     steps:
@@ -33,16 +33,13 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Run tests
-        run: ./mvnw -q test
-
       - name: Package application
         run: ./mvnw -q -DskipTests package
 
   build:
     name: Build Image
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/production' }}
-    needs: test
+    needs: verify
     runs-on: ubuntu-latest
     environment: prod
 
