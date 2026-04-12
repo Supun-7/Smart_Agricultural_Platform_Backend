@@ -149,7 +149,6 @@ jobs:
             --network "$NPM_NET_NAME" \
             --network-alias "$NETWORK_ALIAS" \
             --restart unless-stopped \
-            -p 8081:8081 \
             "$IMAGE"
 
           docker image prune -f
