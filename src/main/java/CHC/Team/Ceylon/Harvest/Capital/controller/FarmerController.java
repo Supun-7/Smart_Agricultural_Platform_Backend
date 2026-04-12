@@ -12,6 +12,7 @@ import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
 import CHC.Team.Ceylon.Harvest.Capital.service.FarmerDashboardService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,16 +29,19 @@ public class FarmerController {
     private final FarmerApplicationRepository farmerApplicationRepository;
     private final JwtUtil jwtUtil;
     private final FarmerDashboardService farmerDashboardService;
+    private final String doaApiBaseUrl;
 
     public FarmerController(
             UserRepository userRepository,
             FarmerApplicationRepository farmerApplicationRepository,
             JwtUtil jwtUtil,
-            FarmerDashboardService farmerDashboardService) {
+            FarmerDashboardService farmerDashboardService,
+            @Value("${external.doa.api.base-url:https://www.apiweb.doa.gov.lk}") String doaApiBaseUrl) {
         this.userRepository = userRepository;
         this.farmerApplicationRepository = farmerApplicationRepository;
         this.jwtUtil = jwtUtil;
         this.farmerDashboardService = farmerDashboardService;
+        this.doaApiBaseUrl = doaApiBaseUrl;
     }
 
     private Long extractUserId(String authHeader) {
@@ -90,7 +94,7 @@ public class FarmerController {
             @RequestHeader("Authorization") String authHeader) {
         return ResponseEntity.ok(Map.of(
                 "message", "Crop data from DOA API — coming in Story 4",
-                "source", "https://www.apiweb.doa.gov.lk"
+                "source", doaApiBaseUrl
         ));
     }
 
