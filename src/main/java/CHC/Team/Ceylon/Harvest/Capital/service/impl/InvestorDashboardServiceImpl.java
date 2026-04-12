@@ -13,6 +13,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.WalletRepository;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
 import CHC.Team.Ceylon.Harvest.Capital.service.MilestoneService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,7 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class InvestorDashboardServiceImpl implements InvestorDashboardService {
 
-    private static final String POLYGON_SCAN_BASE = "https://amoy.polygonscan.com/tx/";
+    private final String polygonScanTxBase;
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
@@ -41,13 +42,15 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
             InvestmentRepository investmentRepository,
             KycSubmissionRepository kycSubmissionRepository,
             LandRepository landRepository,
-            MilestoneService milestoneService) {
+            MilestoneService milestoneService,
+            @Value("${blockchain.polygonscan.tx-base:https://amoy.polygonscan.com/tx/}") String polygonScanTxBase) {
         this.userRepository = userRepository;
         this.walletRepository = walletRepository;
         this.investmentRepository = investmentRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
         this.landRepository = landRepository;
         this.milestoneService = milestoneService;
+        this.polygonScanTxBase = polygonScanTxBase;
     }
 
     @Override
@@ -215,7 +218,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
         if (txHash.length() > 66) {
             return null;
         }
-        return POLYGON_SCAN_BASE + txHash;
+        return polygonScanTxBase + txHash;
     }
 
     @Override

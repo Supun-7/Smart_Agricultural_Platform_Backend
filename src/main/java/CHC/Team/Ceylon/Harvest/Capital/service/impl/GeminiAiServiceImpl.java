@@ -20,6 +20,9 @@ public class GeminiAiServiceImpl implements AiChatService {
     @Value("${gemini.model:gemini-2.5-flash}")
     private String model;
 
+    @Value("${gemini.api.url:https://generativelanguage.googleapis.com/v1beta/models}")
+    private String apiUrl;
+
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -57,8 +60,8 @@ public class GeminiAiServiceImpl implements AiChatService {
             String requestJson = objectMapper.writeValueAsString(body);
 
             // ── API URL — key goes as query param for Gemini ────────
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/"
-                + model + ":generateContent?key=" + apiKey;
+            String baseUrl = apiUrl.endsWith("/") ? apiUrl : apiUrl + "/";
+            String url = baseUrl + model + ":generateContent?key=" + apiKey;
 
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))

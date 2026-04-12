@@ -26,6 +26,9 @@ public class GoogleLoginController {
     @Value("${google.client.secret}")
     private String clientSecret;
 
+    @Value("${google.redirect.uri}")
+    private String redirectUri;
+
     // ── POST /api/auth/google ─────────────────────────────────
     // Original ID token flow — kept for compatibility
     @PostMapping("/google")
@@ -81,7 +84,6 @@ public class GoogleLoginController {
 
         try {
             // Exchange authorization code for user info
-            String redirectUri = "http://localhost:5173/auth/callback";
             var userInfo = googleService.exchangeCodeForUserInfo(
                     code, clientId, clientSecret, redirectUri);
 

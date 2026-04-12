@@ -19,6 +19,9 @@ public class ClaudeAiServiceImpl implements AiChatService {
     @Value("${anthropic.model}")
     private String model;
 
+    @Value("${anthropic.api.url:https://api.anthropic.com/v1/messages}")
+    private String apiUrl;
+
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -32,7 +35,7 @@ public class ClaudeAiServiceImpl implements AiChatService {
             body.put("messages", history);
 
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("https://api.anthropic.com/v1/messages"))
+                .uri(URI.create(apiUrl))
                 .header("Content-Type", "application/json")
                 .header("x-api-key", apiKey)
                 .header("anthropic-version", "2023-06-01")
