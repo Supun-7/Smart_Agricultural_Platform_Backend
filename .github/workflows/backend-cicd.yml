@@ -63,13 +63,11 @@ jobs:
         run: |
           docker build \
             -t "$IMAGE_REPO:$DEPLOY_ENV" \
-            -t "$IMAGE_REPO:${GITHUB_SHA::7}" \
             .
 
       - name: Push image
         run: |
           docker push "$IMAGE_REPO:$DEPLOY_ENV"
-          docker push "$IMAGE_REPO:${GITHUB_SHA::7}"
 
   deploy:
     name: Deploy
