@@ -34,7 +34,7 @@ jobs:
           cache: maven
 
       - name: Package application
-        run: ./mvnw -q -DskipTests package
+        run: ./mvnw -q -Dmaven.test.skip=true package
 
   build:
     name: Build Image
