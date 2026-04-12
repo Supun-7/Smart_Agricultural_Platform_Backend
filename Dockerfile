@@ -9,7 +9,7 @@ RUN ./mvnw -q -DskipTests dependency:go-offline
 
 COPY src src
 
-RUN ./mvnw -q -DskipTests clean package
+RUN ./mvnw -q -Dmaven.test.skip=true clean package
 
 FROM eclipse-temurin:21-jre
 
