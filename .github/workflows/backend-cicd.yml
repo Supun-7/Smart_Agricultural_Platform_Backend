@@ -2,9 +2,9 @@ name: Backend CI/CD
 
 on:
   pull_request:
-    branches: ["production"]
+    branches: ["dev"]
   push:
-    branches: ["production"]
+    branches: ["dev"]
 
 concurrency:
   group: be-ci-${{ github.workflow }}-${{ github.ref }}
