@@ -16,6 +16,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.LedgerRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.WalletRepository;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestmentService;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestorRoiService;
 import CHC.Team.Ceylon.Harvest.Capital.service.blockchain.BlockchainService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,19 +34,22 @@ public class InvestmentServiceImpl implements InvestmentService {
     private final LedgerRepository     ledgerRepository;
     private final InvestmentRepository investmentRepository;
     private final BlockchainService    blockchainService;   // injected: mock or real
+    private final InvestorRoiService   investorRoiService;
 
     public InvestmentServiceImpl(UserRepository userRepository,
                                  LandRepository landRepository,
                                  WalletRepository walletRepository,
                                  LedgerRepository ledgerRepository,
                                  InvestmentRepository investmentRepository,
-                                 BlockchainService blockchainService) {
+                                 BlockchainService blockchainService,
+                                 InvestorRoiService investorRoiService) {
         this.userRepository       = userRepository;
         this.landRepository       = landRepository;
         this.walletRepository     = walletRepository;
         this.ledgerRepository     = ledgerRepository;
         this.investmentRepository = investmentRepository;
         this.blockchainService    = blockchainService;
+        this.investorRoiService   = investorRoiService;
     }
 
     @Override
@@ -136,6 +140,7 @@ public class InvestmentServiceImpl implements InvestmentService {
         investment.setBlockchainTxHash(txHash);
         investment.setContractAddress(contractAddr);
         investmentRepository.save(investment);
+        investorRoiService.recordSnapshot(investment, investment.getInvestmentDate().toLocalDate());
 
         return new InvestResponse(
                 investment.getInvestmentId(),
