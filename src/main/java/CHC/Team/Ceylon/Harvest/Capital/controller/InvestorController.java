@@ -14,6 +14,8 @@ import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestmentService;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestorRoiService;
+import CHC.Team.Ceylon.Harvest.Capital.service.LandMarketService;
 import CHC.Team.Ceylon.Harvest.Capital.dto.investment.InvestRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,8 @@ public class InvestorController {
     private final JwtUtil jwtUtil;
     private final InvestorDashboardService dashboardService;
     private final InvestmentService investmentService;
+    private final InvestorRoiService investorRoiService;
+    private final LandMarketService landMarketService;
 
     public InvestorController(
             UserRepository userRepository,
@@ -39,13 +43,17 @@ public class InvestorController {
             LandRepository landRepository,
             JwtUtil jwtUtil,
             InvestorDashboardService dashboardService,
-            InvestmentService investmentService) {
+            InvestmentService investmentService,
+            InvestorRoiService investorRoiService,
+            LandMarketService landMarketService) {
         this.userRepository = userRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
         this.landRepository = landRepository;
         this.jwtUtil = jwtUtil;
         this.dashboardService = dashboardService;
         this.investmentService = investmentService;
+        this.investorRoiService = investorRoiService;
+        this.landMarketService = landMarketService;
     }
 
     private Long extractUserId(String authHeader) {
@@ -168,6 +176,25 @@ public class InvestorController {
             @RequestHeader("Authorization") String authHeader) {
         Long userId = extractUserId(authHeader);
         return ResponseEntity.ok(dashboardService.getReports(userId));
+    }
+
+
+    // ── GET /api/investor/roi/history ─────────────────────────────────────
+    @GetMapping("/roi/history")
+    @RequiredRole(Role.INVESTOR)
+    public ResponseEntity<?> getRoiHistory(
+            @RequestHeader("Authorization") String authHeader) {
+        Long userId = extractUserId(authHeader);
+        return ResponseEntity.ok(investorRoiService.getRoiHistory(userId));
+    }
+
+    // ── GET /api/investor/land-market ─────────────────────────────────────
+    @GetMapping("/land-market")
+    @RequiredRole(Role.INVESTOR)
+    public ResponseEntity<?> getLandMarket(
+            @RequestHeader("Authorization") String authHeader) {
+        Long userId = extractUserId(authHeader);
+        return ResponseEntity.ok(landMarketService.getInvestorLandMarket(userId));
     }
 
     // ── GET /api/investor/contracts ───────────────────────────────────────

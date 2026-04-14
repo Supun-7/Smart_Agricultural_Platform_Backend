@@ -12,8 +12,8 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.WalletRepository;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestorRoiService;
 import CHC.Team.Ceylon.Harvest.Capital.service.MilestoneService;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +27,7 @@ import java.util.Map;
 @Transactional(readOnly = true)
 public class InvestorDashboardServiceImpl implements InvestorDashboardService {
 
-    private final String polygonScanTxBase;
+    private static final String POLYGON_SCAN_BASE = "https://amoy.polygonscan.com/tx/";
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
@@ -35,6 +35,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
     private final KycSubmissionRepository kycSubmissionRepository;
     private final LandRepository landRepository;
     private final MilestoneService milestoneService;
+    private final InvestorRoiService investorRoiService;
 
     public InvestorDashboardServiceImpl(
             UserRepository userRepository,
@@ -43,14 +44,14 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
             KycSubmissionRepository kycSubmissionRepository,
             LandRepository landRepository,
             MilestoneService milestoneService,
-            @Value("${blockchain.polygonscan.tx-base:https://amoy.polygonscan.com/tx/}") String polygonScanTxBase) {
+            InvestorRoiService investorRoiService) {
         this.userRepository = userRepository;
         this.walletRepository = walletRepository;
         this.investmentRepository = investmentRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
         this.landRepository = landRepository;
         this.milestoneService = milestoneService;
-        this.polygonScanTxBase = polygonScanTxBase;
+        this.investorRoiService = investorRoiService;
     }
 
     @Override
@@ -91,6 +92,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
                         .distinct()
                         .toList()
         ));
+        result.put("portfolioRoiSummary", investorRoiService.buildPortfolioRoiSummary(investments));
         return result;
     }
 
@@ -141,6 +143,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
         result.put("totalInvested",  totalInvested);
         result.put("activeAmount",   activeAmount);
         result.put("count",          items.size());
+        result.put("portfolioRoiSummary", investorRoiService.buildPortfolioRoiSummary(investments));
         return result;
     }
 
@@ -200,6 +203,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
         map.put("blockchainTxHash", txHash);
         map.put("contractAddress",  inv.getContractAddress());
         map.put("polygonScanUrl",   buildPolygonScanUrl(txHash));
+        map.putAll(investorRoiService.buildInvestmentRoiMetrics(inv));
 
         return map;
     }
@@ -218,7 +222,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
         if (txHash.length() > 66) {
             return null;
         }
-        return polygonScanTxBase + txHash;
+        return POLYGON_SCAN_BASE + txHash;
     }
 
     @Override
