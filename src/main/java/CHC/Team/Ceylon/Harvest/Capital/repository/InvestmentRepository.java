@@ -34,11 +34,72 @@ public interface InvestmentRepository extends JpaRepository<Investment, Long> {
      * Returns all investments on lands owned by a given farmer.
      * Used by FarmerDashboardServiceImpl to show investors and blockchain links
      * for each land the farmer has listed.
+     *
+     * Maps to:
+     * SELECT i.*, inv.*, l.*
+     * FROM investments i
+     * JOIN users inv ON i.investor_id = inv.user_id
+     * JOIN lands l ON i.land_id = l.land_id
+     * WHERE l.farmer_id = :farmerUserId
+     * ORDER BY i.investment_date DESC
      */
     @Query("SELECT i FROM Investment i JOIN FETCH i.investor JOIN FETCH i.land " +
-           "WHERE i.land.farmerUser.userId = :farmerUserId " +
-           "ORDER BY i.investmentDate DESC")
+            "WHERE i.land.farmerUser.userId = :farmerUserId " +
+            "ORDER BY i.investmentDate DESC")
     List<Investment> findAllByFarmerUserIdWithInvestor(@Param("farmerUserId") Long farmerUserId);
+
+    /**
+     * AC-2 — Total funding received by a farmer across ALL their land listings.
+     * This is the platform-total figure shown at the top of the financial report.
+     *
+     * Maps to:
+     * SELECT COALESCE(SUM(i.amount_invested), 0)
+     * FROM investments i
+     * JOIN lands l ON i.land_id = l.land_id
+     * WHERE l.farmer_id = :farmerUserId
+     */
+    @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i " +
+            "WHERE i.land.farmerUser.userId = :farmerUserId")
+    BigDecimal sumTotalFundingByFarmerUserId(@Param("farmerUserId") Long farmerUserId);
+
+    /**
+     * AC-2 — Total funding received by a farmer for a SINGLE land listing.
+     * Drives the per-project breakdown in the financial report.
+     *
+     * Maps to:
+     * SELECT COALESCE(SUM(amount_invested), 0)
+     * FROM investments
+     * WHERE land_id = :landId AND investments.investor_id IN (
+     * SELECT investor_id FROM investments
+     * WHERE land_id = :landId
+     * )
+     * (Simplified JPQL version below — same result.)
+     *
+     * Maps to:
+     * SELECT COALESCE(SUM(i.amount_invested), 0)
+     * FROM investments i
+     * JOIN lands l ON i.land_id = l.land_id
+     * WHERE l.land_id = :landId AND l.farmer_id = :farmerUserId
+     */
+    @Query("SELECT COALESCE(SUM(i.amountInvested), 0) FROM Investment i " +
+            "WHERE i.land.landId = :landId " +
+            "  AND i.land.farmerUser.userId = :farmerUserId")
+    BigDecimal sumFundingByLandIdAndFarmerUserId(
+            @Param("landId") Long landId,
+            @Param("farmerUserId") Long farmerUserId);
+
+    /**
+     * AC-2 — Count of distinct investors who have funded a specific land listing.
+     * Used to populate the investorCount field in ProjectFundingSummary.
+     *
+     * Maps to:
+     * SELECT COUNT(DISTINCT investor_id)
+     * FROM investments
+     * WHERE land_id = :landId
+     */
+    @Query("SELECT COUNT(DISTINCT i.investor.userId) FROM Investment i " +
+            "WHERE i.land.landId = :landId")
+    long countDistinctInvestorsByLandId(@Param("landId") Long landId);
 
     // ── Platform-wide queries ─────────────────────────────────────────────────
 
