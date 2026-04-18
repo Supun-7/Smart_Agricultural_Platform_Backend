@@ -52,23 +52,9 @@ public class RoleInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // 5. Extract userId and store in request attribute.
-        // FIX (CHC-122): guard against a null subject claim — a token whose
-        // subject was never set would produce a null here.  Previously this
-        // fell through to Long.parseLong(null) which threw an unchecked
-        // NumberFormatException, bubbling up as a 500 rather than a clear 401.
+        // 5. Extract userId and store in request attribute
         String userIdStr = jwtUtil.extractUserId(token);
-        if (userIdStr == null || userIdStr.isBlank()) {
-            response.sendError(401, "Token is missing user identity (subject claim)");
-            return false;
-        }
-        Long userId;
-        try {
-            userId = Long.parseLong(userIdStr);
-        } catch (NumberFormatException e) {
-            response.sendError(401, "Token contains an invalid user identity: " + userIdStr);
-            return false;
-        }
+        Long userId = Long.parseLong(userIdStr);
         request.setAttribute("userId", userId);
 
         // 6. AC-5 — Check if account is SUSPENDED.
