@@ -30,10 +30,6 @@ public class WebConfig implements WebMvcConfigurer {
             .maxAge(3600);
     }
 
-    // FIX (CHC-122): addInterceptors was accidentally commented out, which meant
-    // RoleInterceptor.preHandle() never ran and request.getAttribute("userId")
-    // always returned null.  Every auditor action endpoint then crashed with
-    // "The given id must not be null" when it called userRepository.findById(null).
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(roleInterceptor)
