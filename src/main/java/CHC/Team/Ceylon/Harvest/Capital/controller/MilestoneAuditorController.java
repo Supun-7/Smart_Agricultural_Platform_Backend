@@ -43,7 +43,15 @@ public class MilestoneAuditorController {
             @PathVariable Long milestoneId,
             HttpServletRequest request
     ) {
+        // FIX (CHC-122): guard against null auditorId.
+        // userId is placed on the request by RoleInterceptor; if the interceptor
+        // is not registered (WebConfig.addInterceptors commented out) this will
+        // be null and MilestoneServiceImpl.approveMilestone() would crash.
         Long auditorId = (Long) request.getAttribute("userId");
+        if (auditorId == null) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "Unauthorized: missing auditor identity"));
+        }
         var milestone = milestoneService.approveMilestone(milestoneId, auditorId);
         return ResponseEntity.ok(Map.of(
                 "message", "Milestone approved successfully",
@@ -58,7 +66,12 @@ public class MilestoneAuditorController {
             @Valid @RequestBody MilestoneDecisionRequest requestBody,
             HttpServletRequest request
     ) {
+        // FIX (CHC-122): guard against null auditorId — see approveMilestone for detail.
         Long auditorId = (Long) request.getAttribute("userId");
+        if (auditorId == null) {
+            return ResponseEntity.status(401)
+                    .body(Map.of("error", "Unauthorized: missing auditor identity"));
+        }
         var milestone = milestoneService.rejectMilestone(milestoneId, auditorId, requestBody.reason());
         return ResponseEntity.ok(Map.of(
                 "message", "Milestone rejected successfully",

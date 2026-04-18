@@ -1,5 +1,6 @@
 package CHC.Team.Ceylon.Harvest.Capital.entity;
 
+import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -47,6 +48,25 @@ public class Land {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "farmer_id")
     private User farmerUser;
+
+    /**
+     * Auditor review status for this project submission.
+     * Starts as PENDING when the farmer registers a new land/project.
+     * The auditor sets it to VERIFIED (project goes live) or REJECTED.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "review_status")
+    private VerificationStatus reviewStatus = VerificationStatus.PENDING;
+
+    @Column(name = "rejection_reason")
+    private String rejectionReason;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "reviewed_by")
+    private User reviewedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -183,4 +203,16 @@ public class Land {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
+    public VerificationStatus getReviewStatus() { return reviewStatus; }
+    public void setReviewStatus(VerificationStatus reviewStatus) { this.reviewStatus = reviewStatus; }
+
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
+
+    public LocalDateTime getReviewedAt() { return reviewedAt; }
+    public void setReviewedAt(LocalDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
+
+    public User getReviewedBy() { return reviewedBy; }
+    public void setReviewedBy(User reviewedBy) { this.reviewedBy = reviewedBy; }
 }
