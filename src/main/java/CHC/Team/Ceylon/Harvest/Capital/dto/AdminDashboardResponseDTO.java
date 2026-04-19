@@ -21,6 +21,12 @@ public class AdminDashboardResponseDTO {
     private List<UserDTO> systemAdmins;
     private List<AdminAuditLogDTO> auditLogs;
 
+    // ================= Constructors =================
+
+    /**
+     * Default constructor
+     */
+
     public AdminDashboardResponseDTO() {
     }
 
