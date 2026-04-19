@@ -5,4 +5,8 @@ public class FarmerDashboardException extends RuntimeException {
     public FarmerDashboardException(String message, Throwable cause) {
         super(message, cause);
     }
+
+    public FarmerDashboardException(String message) {
+        super(message);
+    }
 }
