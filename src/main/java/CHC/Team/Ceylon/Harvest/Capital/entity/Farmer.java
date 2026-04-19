@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 @Table(name = "farmers")
 public class Farmer {
 
+    /**
+     * Primary key of the milestone table
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "farmer_id")
@@ -38,11 +41,11 @@ public class Farmer {
     // ── AC-2: Compliance scoring fields ─────────────────────────────────────
     /**
      * AC-2: Compliance score assigned by an auditor.
-     * Range: 0.00 – 100.00.  NULL = not yet scored.
+     * Range: 0.00 – 100.00. NULL = not yet scored.
      * Scoring criteria (AC-1):
-     *   - Milestone update frequency  (0–40 pts)
-     *   - Evidence quality            (0–40 pts)
-     *   - Timeliness of submissions   (0–20 pts)
+     * - Milestone update frequency (0–40 pts)
+     * - Evidence quality (0–40 pts)
+     * - Timeliness of submissions (0–20 pts)
      */
     @Column(name = "compliance_score", precision = 5, scale = 2)
     private BigDecimal complianceScore;
@@ -62,39 +65,99 @@ public class Farmer {
 
     // ── Getters / Setters ────────────────────────────────────────────────────
 
-    public Long getFarmerId() { return farmerId; }
-    public void setFarmerId(Long farmerId) { this.farmerId = farmerId; }
+    public Long getFarmerId() {
+        return farmerId;
+    }
 
-    public User getUser() { return user; }
-    public void setUser(User user) { this.user = user; }
+    public void setFarmerId(Long farmerId) {
+        this.farmerId = farmerId;
+    }
 
-    public String getLandName() { return landName; }
-    public void setLandName(String landName) { this.landName = landName; }
+    public User getUser() {
+        return user;
+    }
 
-    public String getLandLocation() { return landLocation; }
-    public void setLandLocation(String landLocation) { this.landLocation = landLocation; }
+    public void setUser(User user) {
+        this.user = user;
+    }
 
-    public BigDecimal getTotalInvestment() { return totalInvestment; }
-    public void setTotalInvestment(BigDecimal totalInvestment) { this.totalInvestment = totalInvestment; }
+    public String getLandName() {
+        return landName;
+    }
 
-    public Integer getLevel() { return level; }
-    public void setLevel(Integer level) { this.level = level; }
+    public void setLandName(String landName) {
+        this.landName = landName;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getLandLocation() {
+        return landLocation;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setLandLocation(String landLocation) {
+        this.landLocation = landLocation;
+    }
 
-    public BigDecimal getComplianceScore() { return complianceScore; }
-    public void setComplianceScore(BigDecimal complianceScore) { this.complianceScore = complianceScore; }
+    public BigDecimal getTotalInvestment() {
+        return totalInvestment;
+    }
 
-    public String getComplianceNotes() { return complianceNotes; }
-    public void setComplianceNotes(String complianceNotes) { this.complianceNotes = complianceNotes; }
+    public void setTotalInvestment(BigDecimal totalInvestment) {
+        this.totalInvestment = totalInvestment;
+    }
 
-    public LocalDateTime getComplianceScoredAt() { return complianceScoredAt; }
-    public void setComplianceScoredAt(LocalDateTime complianceScoredAt) { this.complianceScoredAt = complianceScoredAt; }
+    public Integer getLevel() {
+        return level;
+    }
 
-    public User getComplianceScoredBy() { return complianceScoredBy; }
-    public void setComplianceScoredBy(User complianceScoredBy) { this.complianceScoredBy = complianceScoredBy; }
+    public void setLevel(Integer level) {
+        this.level = level;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public BigDecimal getComplianceScore() {
+        return complianceScore;
+    }
+
+    public void setComplianceScore(BigDecimal complianceScore) {
+        this.complianceScore = complianceScore;
+    }
+
+    public String getComplianceNotes() {
+        return complianceNotes;
+    }
+
+    public void setComplianceNotes(String complianceNotes) {
+        this.complianceNotes = complianceNotes;
+    }
+
+    public LocalDateTime getComplianceScoredAt() {
+        return complianceScoredAt;
+    }
+
+    public void setComplianceScoredAt(LocalDateTime complianceScoredAt) {
+        this.complianceScoredAt = complianceScoredAt;
+    }
+
+    public User getComplianceScoredBy() {
+        return complianceScoredBy;
+    }
+
+    public void setComplianceScoredBy(User complianceScoredBy) {
+        this.complianceScoredBy = complianceScoredBy;
+    }
 }
