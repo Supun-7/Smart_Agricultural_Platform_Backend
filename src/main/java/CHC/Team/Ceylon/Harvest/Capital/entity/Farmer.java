@@ -35,67 +35,66 @@ public class Farmer {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public Long getFarmerId() {
-        return farmerId;
-    }
+    // ── AC-2: Compliance scoring fields ─────────────────────────────────────
+    /**
+     * AC-2: Compliance score assigned by an auditor.
+     * Range: 0.00 – 100.00.  NULL = not yet scored.
+     * Scoring criteria (AC-1):
+     *   - Milestone update frequency  (0–40 pts)
+     *   - Evidence quality            (0–40 pts)
+     *   - Timeliness of submissions   (0–20 pts)
+     */
+    @Column(name = "compliance_score", precision = 5, scale = 2)
+    private BigDecimal complianceScore;
 
-    public void setFarmerId(Long farmerId) {
-        this.farmerId = farmerId;
-    }
+    /** AC-1: Free-text notes the auditor can attach to justify the score. */
+    @Column(name = "compliance_notes", columnDefinition = "TEXT")
+    private String complianceNotes;
 
-    public User getUser() {
-        return user;
-    }
+    /** Timestamp of the most recent scoring action. */
+    @Column(name = "compliance_scored_at")
+    private LocalDateTime complianceScoredAt;
 
-    public void setUser(User user) {
-        this.user = user;
-    }
+    /** The auditor (User) who last set the score. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "compliance_scored_by")
+    private User complianceScoredBy;
 
-    public String getLandName() {
-        return landName;
-    }
+    // ── Getters / Setters ────────────────────────────────────────────────────
 
-    public void setLandName(String landName) {
-        this.landName = landName;
-    }
+    public Long getFarmerId() { return farmerId; }
+    public void setFarmerId(Long farmerId) { this.farmerId = farmerId; }
 
-    public String getLandLocation() {
-        return landLocation;
-    }
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
-    public void setLandLocation(String landLocation) {
-        this.landLocation = landLocation;
-    }
+    public String getLandName() { return landName; }
+    public void setLandName(String landName) { this.landName = landName; }
 
-    public BigDecimal getTotalInvestment() {
-        return totalInvestment;
-    }
+    public String getLandLocation() { return landLocation; }
+    public void setLandLocation(String landLocation) { this.landLocation = landLocation; }
 
-    public void setTotalInvestment(BigDecimal totalInvestment) {
-        this.totalInvestment = totalInvestment;
-    }
+    public BigDecimal getTotalInvestment() { return totalInvestment; }
+    public void setTotalInvestment(BigDecimal totalInvestment) { this.totalInvestment = totalInvestment; }
 
-    public Integer getLevel() {
-        return level;
-    }
+    public Integer getLevel() { return level; }
+    public void setLevel(Integer level) { this.level = level; }
 
-    public void setLevel(Integer level) {
-        this.level = level;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
+    public BigDecimal getComplianceScore() { return complianceScore; }
+    public void setComplianceScore(BigDecimal complianceScore) { this.complianceScore = complianceScore; }
 
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
+    public String getComplianceNotes() { return complianceNotes; }
+    public void setComplianceNotes(String complianceNotes) { this.complianceNotes = complianceNotes; }
 
-    public void setUpdatedAt(LocalDateTime updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public LocalDateTime getComplianceScoredAt() { return complianceScoredAt; }
+    public void setComplianceScoredAt(LocalDateTime complianceScoredAt) { this.complianceScoredAt = complianceScoredAt; }
+
+    public User getComplianceScoredBy() { return complianceScoredBy; }
+    public void setComplianceScoredBy(User complianceScoredBy) { this.complianceScoredBy = complianceScoredBy; }
 }
