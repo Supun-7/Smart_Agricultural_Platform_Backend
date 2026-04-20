@@ -10,6 +10,9 @@ import java.time.LocalDateTime;
 @Table(name = "milestones")
 public class Milestone {
 
+    /**
+     * Primary key of the milestone table
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
