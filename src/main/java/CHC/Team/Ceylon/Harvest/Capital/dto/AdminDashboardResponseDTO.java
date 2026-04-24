@@ -3,6 +3,12 @@ package CHC.Team.Ceylon.Harvest.Capital.dto;
 import java.math.BigDecimal;
 import java.util.List;
 
+/**
+ * DTO (Data Transfer Object) for Admin Dashboard Response.
+ * This class is used to send all dashboard summary data
+ * from backend to frontend in a structured format.
+ */
+
 public class AdminDashboardResponseDTO {
 
     private int totalFarmers;
@@ -15,7 +21,14 @@ public class AdminDashboardResponseDTO {
     private List<UserDTO> systemAdmins;
     private List<AdminAuditLogDTO> auditLogs;
 
-    public AdminDashboardResponseDTO() {}
+    // ================= Constructors =================
+
+    /**
+     * Default constructor
+     */
+
+    public AdminDashboardResponseDTO() {
+    }
 
     public AdminDashboardResponseDTO(
             int totalFarmers,
@@ -38,30 +51,75 @@ public class AdminDashboardResponseDTO {
         this.auditLogs = auditLogs;
     }
 
-    public int getTotalFarmers() { return totalFarmers; }
-    public void setTotalFarmers(int totalFarmers) { this.totalFarmers = totalFarmers; }
+    public int getTotalFarmers() {
+        return totalFarmers;
+    }
 
-    public int getTotalInvestors() { return totalInvestors; }
-    public void setTotalInvestors(int totalInvestors) { this.totalInvestors = totalInvestors; }
+    public void setTotalFarmers(int totalFarmers) {
+        this.totalFarmers = totalFarmers;
+    }
 
-    public BigDecimal getTotalInvestment() { return totalInvestment; }
-    public void setTotalInvestment(BigDecimal totalInvestment) { this.totalInvestment = totalInvestment; }
+    public int getTotalInvestors() {
+        return totalInvestors;
+    }
 
-    public List<UserDTO> getFarmers() { return farmers; }
-    public void setFarmers(List<UserDTO> farmers) { this.farmers = farmers; }
+    public void setTotalInvestors(int totalInvestors) {
+        this.totalInvestors = totalInvestors;
+    }
 
-    public List<UserDTO> getInvestors() { return investors; }
-    public void setInvestors(List<UserDTO> investors) { this.investors = investors; }
+    public BigDecimal getTotalInvestment() {
+        return totalInvestment;
+    }
 
-    public List<UserDTO> getAuditors() { return auditors; }
-    public void setAuditors(List<UserDTO> auditors) { this.auditors = auditors; }
+    public void setTotalInvestment(BigDecimal totalInvestment) {
+        this.totalInvestment = totalInvestment;
+    }
 
-    public List<UserDTO> getAdmins() { return admins; }
-    public void setAdmins(List<UserDTO> admins) { this.admins = admins; }
+    public List<UserDTO> getFarmers() {
+        return farmers;
+    }
 
-    public List<UserDTO> getSystemAdmins() { return systemAdmins; }
-    public void setSystemAdmins(List<UserDTO> systemAdmins) { this.systemAdmins = systemAdmins; }
+    public void setFarmers(List<UserDTO> farmers) {
+        this.farmers = farmers;
+    }
 
-    public List<AdminAuditLogDTO> getAuditLogs() { return auditLogs; }
-    public void setAuditLogs(List<AdminAuditLogDTO> auditLogs) { this.auditLogs = auditLogs; }
+    public List<UserDTO> getInvestors() {
+        return investors;
+    }
+
+    public void setInvestors(List<UserDTO> investors) {
+        this.investors = investors;
+    }
+
+    public List<UserDTO> getAuditors() {
+        return auditors;
+    }
+
+    public void setAuditors(List<UserDTO> auditors) {
+        this.auditors = auditors;
+    }
+
+    public List<UserDTO> getAdmins() {
+        return admins;
+    }
+
+    public void setAdmins(List<UserDTO> admins) {
+        this.admins = admins;
+    }
+
+    public List<UserDTO> getSystemAdmins() {
+        return systemAdmins;
+    }
+
+    public void setSystemAdmins(List<UserDTO> systemAdmins) {
+        this.systemAdmins = systemAdmins;
+    }
+
+    public List<AdminAuditLogDTO> getAuditLogs() {
+        return auditLogs;
+    }
+
+    public void setAuditLogs(List<AdminAuditLogDTO> auditLogs) {
+        this.auditLogs = auditLogs;
+    }
 }

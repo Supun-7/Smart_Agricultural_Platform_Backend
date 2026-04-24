@@ -12,6 +12,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.WalletRepository;
 import CHC.Team.Ceylon.Harvest.Capital.service.InvestorDashboardService;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestorRoiService;
 import CHC.Team.Ceylon.Harvest.Capital.service.MilestoneService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
     private final KycSubmissionRepository kycSubmissionRepository;
     private final LandRepository landRepository;
     private final MilestoneService milestoneService;
+    private final InvestorRoiService investorRoiService;
 
     public InvestorDashboardServiceImpl(
             UserRepository userRepository,
@@ -41,13 +43,15 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
             InvestmentRepository investmentRepository,
             KycSubmissionRepository kycSubmissionRepository,
             LandRepository landRepository,
-            MilestoneService milestoneService) {
+            MilestoneService milestoneService,
+            InvestorRoiService investorRoiService) {
         this.userRepository = userRepository;
         this.walletRepository = walletRepository;
         this.investmentRepository = investmentRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
         this.landRepository = landRepository;
         this.milestoneService = milestoneService;
+        this.investorRoiService = investorRoiService;
     }
 
     @Override
@@ -88,6 +92,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
                         .distinct()
                         .toList()
         ));
+        result.put("portfolioRoiSummary", investorRoiService.buildPortfolioRoiSummary(investments));
         return result;
     }
 
@@ -138,6 +143,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
         result.put("totalInvested",  totalInvested);
         result.put("activeAmount",   activeAmount);
         result.put("count",          items.size());
+        result.put("portfolioRoiSummary", investorRoiService.buildPortfolioRoiSummary(investments));
         return result;
     }
 
@@ -197,6 +203,7 @@ public class InvestorDashboardServiceImpl implements InvestorDashboardService {
         map.put("blockchainTxHash", txHash);
         map.put("contractAddress",  inv.getContractAddress());
         map.put("polygonScanUrl",   buildPolygonScanUrl(txHash));
+        map.putAll(investorRoiService.buildInvestmentRoiMetrics(inv));
 
         return map;
     }

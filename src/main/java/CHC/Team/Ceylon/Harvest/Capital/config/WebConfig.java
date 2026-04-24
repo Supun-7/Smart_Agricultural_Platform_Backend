@@ -1,6 +1,7 @@
 package CHC.Team.Ceylon.Harvest.Capital.config;
 
 import CHC.Team.Ceylon.Harvest.Capital.security.RoleInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.*;
 
@@ -8,19 +9,20 @@ import org.springframework.web.servlet.config.annotation.*;
 public class WebConfig implements WebMvcConfigurer {
 
     private final RoleInterceptor roleInterceptor;
+    private final String[] corsAllowedOrigins;
 
-    public WebConfig(RoleInterceptor roleInterceptor) {
+    public WebConfig(
+            RoleInterceptor roleInterceptor,
+            @Value("${app.cors.allowed-origins}") String corsAllowedOrigins
+    ) {
         this.roleInterceptor = roleInterceptor;
+        this.corsAllowedOrigins = corsAllowedOrigins.split("\\s*,\\s*");
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-            .allowedOriginPatterns(
-                "http://localhost:[*]",   // any localhost port — covers 5173, 3000, 4173
-                "https://*.vercel.app",   // if you deploy frontend to Vercel later
-                "https://*.netlify.app"   // or Netlify
-            )
+            .allowedOriginPatterns(corsAllowedOrigins)
             .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
             .allowedHeaders("*")
             .exposedHeaders("Authorization")

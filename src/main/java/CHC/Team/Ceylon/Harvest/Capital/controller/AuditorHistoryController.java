@@ -5,6 +5,7 @@ import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
 import CHC.Team.Ceylon.Harvest.Capital.service.AuditLogService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -53,6 +54,7 @@ public class AuditorHistoryController {
      */
     @GetMapping
     @RequiredRole(Role.AUDITOR)
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAuditHistory(HttpServletRequest request) {
         Long auditorId = (Long) request.getAttribute("userId");
         List<?> items = auditLogService.getHistoryForAuditor(auditorId);

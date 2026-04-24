@@ -4,6 +4,7 @@ import CHC.Team.Ceylon.Harvest.Capital.entity.User;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.security.JwtUtil;
+import CHC.Team.Ceylon.Harvest.Capital.service.OtpService;
 import CHC.Team.Ceylon.Harvest.Capital.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +39,8 @@ class AdminRegistrationControllerTest {
 
     @Mock
     private UserService userService;
-
+    @Mock
+    private OtpService otpService;
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
     private JwtUtil jwtUtil;
@@ -49,7 +51,7 @@ class AdminRegistrationControllerTest {
     @BeforeEach
     void setUp() {
         jwtUtil = new JwtUtil(JWT_SECRET, 3600000L);
-        UserController userController = new UserController(userService, jwtUtil);
+        UserController userController = new UserController(userService, jwtUtil, otpService);
         mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
         objectMapper = new ObjectMapper();
     }

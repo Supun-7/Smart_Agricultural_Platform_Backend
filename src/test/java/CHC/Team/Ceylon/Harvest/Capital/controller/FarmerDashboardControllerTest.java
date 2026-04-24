@@ -47,7 +47,9 @@ class FarmerDashboardControllerTest {
                 userRepository,
                 farmerApplicationRepository,
                 jwtUtil,
-                farmerDashboardService);
+                farmerDashboardService,
+                "test-value" // ✅ ADD THIS
+        );
 
         mockMvc = MockMvcBuilders.standaloneSetup(farmerController)
                 .setControllerAdvice(new GlobalExceptionHandler())

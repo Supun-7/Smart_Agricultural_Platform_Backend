@@ -16,6 +16,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.InvestmentRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +30,7 @@ import java.util.Optional;
 @Transactional
 public class FarmerDashboardServiceImpl implements FarmerDashboardService {
 
-    private static final String POLYGON_SCAN_BASE = "https://amoy.polygonscan.com/tx/";
+    private final String polygonScanTxBase;
 
     private final UserRepository              userRepository;
     private final FarmerApplicationRepository farmerApplicationRepository;
@@ -44,13 +45,15 @@ public class FarmerDashboardServiceImpl implements FarmerDashboardService {
             ProjectRepository           projectRepository,
             MilestoneService            milestoneService,
             LandRepository              landRepository,
-            InvestmentRepository        investmentRepository) {
+            InvestmentRepository        investmentRepository,
+            @Value("${blockchain.polygonscan.tx-base:https://amoy.polygonscan.com/tx/}") String polygonScanTxBase) {
         this.userRepository              = userRepository;
         this.farmerApplicationRepository = farmerApplicationRepository;
         this.projectRepository           = projectRepository;
         this.milestoneService            = milestoneService;
         this.landRepository              = landRepository;
         this.investmentRepository        = investmentRepository;
+        this.polygonScanTxBase           = polygonScanTxBase;
     }
 
     @Override
@@ -226,7 +229,7 @@ public class FarmerDashboardServiceImpl implements FarmerDashboardService {
         if (txHash.length() > 66) {
             return null;
         }
-        return POLYGON_SCAN_BASE + txHash;
+        return polygonScanTxBase + txHash;
     }
 
     /**

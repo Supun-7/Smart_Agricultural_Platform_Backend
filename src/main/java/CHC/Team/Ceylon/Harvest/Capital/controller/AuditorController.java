@@ -1,16 +1,21 @@
 package CHC.Team.Ceylon.Harvest.Capital.controller;
 
+import CHC.Team.Ceylon.Harvest.Capital.dto.MilestoneSummaryResponse;
 import CHC.Team.Ceylon.Harvest.Capital.entity.FarmerApplication;
 import CHC.Team.Ceylon.Harvest.Capital.entity.KycSubmission;
 import CHC.Team.Ceylon.Harvest.Capital.entity.User;
 import CHC.Team.Ceylon.Harvest.Capital.enums.Role;
 import CHC.Team.Ceylon.Harvest.Capital.enums.VerificationStatus;
 import CHC.Team.Ceylon.Harvest.Capital.repository.FarmerApplicationRepository;
+import CHC.Team.Ceylon.Harvest.Capital.repository.InvestmentRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.KycSubmissionRepository;
+import CHC.Team.Ceylon.Harvest.Capital.repository.LandRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.security.RequiredRole;
+import CHC.Team.Ceylon.Harvest.Capital.service.MilestoneService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -25,27 +30,44 @@ public class AuditorController {
     private final UserRepository userRepository;
     private final FarmerApplicationRepository farmerApplicationRepository;
     private final KycSubmissionRepository kycSubmissionRepository;
+    private final MilestoneService milestoneService;
+    private final InvestmentRepository investmentRepository;
+    private final LandRepository landRepository;
 
     public AuditorController(
             UserRepository userRepository,
             FarmerApplicationRepository farmerApplicationRepository,
-            KycSubmissionRepository kycSubmissionRepository
+            KycSubmissionRepository kycSubmissionRepository,
+            MilestoneService milestoneService,
+            InvestmentRepository investmentRepository,
+            LandRepository landRepository
     ) {
         this.userRepository = userRepository;
         this.farmerApplicationRepository = farmerApplicationRepository;
         this.kycSubmissionRepository = kycSubmissionRepository;
+        this.milestoneService = milestoneService;
+        this.investmentRepository = investmentRepository;
+        this.landRepository = landRepository;
     }
 
-    // ── AC-1: Dashboard — returns pending KYC + pending farmer applications ──
     @GetMapping("/dashboard")
     @RequiredRole(Role.AUDITOR)
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getDashboard() {
 
+        // join fetch k.user so getEmail() never hits a closed session
         List<KycSubmission> pendingKyc =
-            kycSubmissionRepository.findByStatus(VerificationStatus.PENDING);
+            kycSubmissionRepository.findByStatusWithUser(VerificationStatus.PENDING);
 
+        // join fetch f.user so getEmail() never hits a closed session
         List<FarmerApplication> pendingFarmers =
-            farmerApplicationRepository.findByStatus(VerificationStatus.PENDING);
+            farmerApplicationRepository.findByStatusWithUser(VerificationStatus.PENDING);
+
+        List<MilestoneSummaryResponse> pendingMilestones =
+            milestoneService.getPendingMilestones();
+
+        long pendingProjectCount = landRepository
+            .findByReviewStatusWithFarmer(VerificationStatus.PENDING).size();
 
         var kycList = pendingKyc.stream().map(k -> {
             Map<String, Object> map = new HashMap<>();
@@ -83,24 +105,45 @@ public class AuditorController {
             return map;
         }).toList();
 
+        java.math.BigDecimal totalInvested = investmentRepository.sumTotalInvestmentPlatformWide();
+        long totalInvestors = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.INVESTOR).count();
+        Map<String, Object> investorActivity = new HashMap<>();
+        investorActivity.put("totalInvestors",        totalInvestors);
+        investorActivity.put("pendingKycCount",        pendingKyc.size());
+        investorActivity.put("totalInvestedPlatform", totalInvested);
+
         return ResponseEntity.ok(Map.of(
-            "pendingKyc",     kycList,
-            "pendingFarmers", farmerList,
-            "kycCount",       kycList.size(),
-            "farmerCount",    farmerList.size()
+            "pendingKyc",        kycList,
+            "pendingFarmers",    farmerList,
+            "pendingMilestones", pendingMilestones,
+            "investorActivity",  investorActivity,
+            "kycCount",          kycList.size(),
+            "farmerCount",       farmerList.size(),
+            "milestoneCount",    pendingMilestones.size(),
+            "projectCount",      pendingProjectCount
         ));
     }
 
-    // ── KYC Approve ──────────────────────────────────────────────────────────
     @PutMapping("/kyc/{id}/approve")
     @RequiredRole(Role.AUDITOR)
+    @Transactional
     public ResponseEntity<?> approveKyc(
             @PathVariable String id,
             HttpServletRequest request
     ) {
+        // FIX (CHC-122): guard against null auditorId (set by RoleInterceptor).
+        // This is a defence-in-depth check; the real fix is re-enabling the
+        // interceptor in WebConfig.  Without the interceptor, userId is never
+        // placed on the request and findById(null) crashes with
+        // InvalidDataAccessApiUsageException.
         Long auditorId = (Long) request.getAttribute("userId");
+        if (auditorId == null) {
+            return ResponseEntity.status(401)
+                .body(Map.of("error", "Unauthorized: missing auditor identity"));
+        }
 
-        KycSubmission kyc = kycSubmissionRepository.findById(id)
+        KycSubmission kyc = kycSubmissionRepository.findByIdWithUser(id)
             .orElseThrow(() -> new RuntimeException("KYC not found: " + id));
 
         User auditor = userRepository.findById(auditorId)
@@ -122,18 +165,23 @@ public class AuditorController {
         ));
     }
 
-    // ── KYC Reject ───────────────────────────────────────────────────────────
     @PutMapping("/kyc/{id}/reject")
     @RequiredRole(Role.AUDITOR)
+    @Transactional
     public ResponseEntity<?> rejectKyc(
             @PathVariable String id,
             @RequestBody Map<String, String> body,
             HttpServletRequest request
     ) {
+        // FIX (CHC-122): guard against null auditorId — see approveKyc for detail.
         Long auditorId = (Long) request.getAttribute("userId");
+        if (auditorId == null) {
+            return ResponseEntity.status(401)
+                .body(Map.of("error", "Unauthorized: missing auditor identity"));
+        }
         String reason  = body.getOrDefault("reason", "No reason provided");
 
-        KycSubmission kyc = kycSubmissionRepository.findById(id)
+        KycSubmission kyc = kycSubmissionRepository.findByIdWithUser(id)
             .orElseThrow(() -> new RuntimeException("KYC not found: " + id));
 
         User auditor = userRepository.findById(auditorId)
@@ -156,16 +204,22 @@ public class AuditorController {
         ));
     }
 
-    // ── Farmer Approve ───────────────────────────────────────────────────────
     @PutMapping("/farmer/{id}/approve")
     @RequiredRole(Role.AUDITOR)
+    @Transactional
     public ResponseEntity<?> approveFarmer(
             @PathVariable String id,
             HttpServletRequest request
     ) {
+        // FIX (CHC-122): guard against null auditorId — see approveKyc for detail.
+        // This was the specific endpoint that produced the reported stack trace.
         Long auditorId = (Long) request.getAttribute("userId");
+        if (auditorId == null) {
+            return ResponseEntity.status(401)
+                .body(Map.of("error", "Unauthorized: missing auditor identity"));
+        }
 
-        FarmerApplication farmer = farmerApplicationRepository.findById(id)
+        FarmerApplication farmer = farmerApplicationRepository.findByIdWithUser(id)
             .orElseThrow(() -> new RuntimeException("Farmer application not found: " + id));
 
         User auditor = userRepository.findById(auditorId)
@@ -187,18 +241,23 @@ public class AuditorController {
         ));
     }
 
-    // ── Farmer Reject ────────────────────────────────────────────────────────
     @PutMapping("/farmer/{id}/reject")
     @RequiredRole(Role.AUDITOR)
+    @Transactional
     public ResponseEntity<?> rejectFarmer(
             @PathVariable String id,
             @RequestBody Map<String, String> body,
             HttpServletRequest request
     ) {
+        // FIX (CHC-122): guard against null auditorId — see approveKyc for detail.
         Long auditorId = (Long) request.getAttribute("userId");
+        if (auditorId == null) {
+            return ResponseEntity.status(401)
+                .body(Map.of("error", "Unauthorized: missing auditor identity"));
+        }
         String reason  = body.getOrDefault("reason", "No reason provided");
 
-        FarmerApplication farmer = farmerApplicationRepository.findById(id)
+        FarmerApplication farmer = farmerApplicationRepository.findByIdWithUser(id)
             .orElseThrow(() -> new RuntimeException("Farmer application not found: " + id));
 
         User auditor = userRepository.findById(auditorId)
@@ -221,9 +280,9 @@ public class AuditorController {
         ));
     }
 
-    // ── Existing read-only endpoints ─────────────────────────────────────────
     @GetMapping("/farms")
     @RequiredRole(Role.AUDITOR)
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAllFarms() {
         var farms = farmerApplicationRepository.findAll();
         return ResponseEntity.ok(Map.of(
@@ -239,6 +298,7 @@ public class AuditorController {
 
     @GetMapping("/users")
     @RequiredRole(Role.AUDITOR)
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAllUsers() {
         var users = userRepository.findAll();
         return ResponseEntity.ok(Map.of(
@@ -255,6 +315,7 @@ public class AuditorController {
 
     @GetMapping("/reports")
     @RequiredRole(Role.AUDITOR)
+    @Transactional(readOnly = true)
     public ResponseEntity<?> generateReports() {
         return ResponseEntity.ok(Map.of(
             "totalUsers", userRepository.findAll().size(),
