@@ -10,7 +10,7 @@ public class OtpVerification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    // OTP is the cureect
     @Column(nullable = false)
     private String email;
 

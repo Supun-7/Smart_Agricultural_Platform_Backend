@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 @Table(name = "farmers")
 public class Farmer {
 
+    /**
+     * Primary key of the milestone table
+     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "farmer_id")
@@ -34,6 +37,33 @@ public class Farmer {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    // ── AC-2: Compliance scoring fields ─────────────────────────────────────
+    /**
+     * AC-2: Compliance score assigned by an auditor.
+     * Range: 0.00 – 100.00. NULL = not yet scored.
+     * Scoring criteria (AC-1):
+     * - Milestone update frequency (0–40 pts)
+     * - Evidence quality (0–40 pts)
+     * - Timeliness of submissions (0–20 pts)
+     */
+    @Column(name = "compliance_score", precision = 5, scale = 2)
+    private BigDecimal complianceScore;
+
+    /** AC-1: Free-text notes the auditor can attach to justify the score. */
+    @Column(name = "compliance_notes", columnDefinition = "TEXT")
+    private String complianceNotes;
+
+    /** Timestamp of the most recent scoring action. */
+    @Column(name = "compliance_scored_at")
+    private LocalDateTime complianceScoredAt;
+
+    /** The auditor (User) who last set the score. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "compliance_scored_by")
+    private User complianceScoredBy;
+
+    // ── Getters / Setters ────────────────────────────────────────────────────
 
     public Long getFarmerId() {
         return farmerId;
@@ -97,5 +127,37 @@ public class Farmer {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public BigDecimal getComplianceScore() {
+        return complianceScore;
+    }
+
+    public void setComplianceScore(BigDecimal complianceScore) {
+        this.complianceScore = complianceScore;
+    }
+
+    public String getComplianceNotes() {
+        return complianceNotes;
+    }
+
+    public void setComplianceNotes(String complianceNotes) {
+        this.complianceNotes = complianceNotes;
+    }
+
+    public LocalDateTime getComplianceScoredAt() {
+        return complianceScoredAt;
+    }
+
+    public void setComplianceScoredAt(LocalDateTime complianceScoredAt) {
+        this.complianceScoredAt = complianceScoredAt;
+    }
+
+    public User getComplianceScoredBy() {
+        return complianceScoredBy;
+    }
+
+    public void setComplianceScoredBy(User complianceScoredBy) {
+        this.complianceScoredBy = complianceScoredBy;
     }
 }

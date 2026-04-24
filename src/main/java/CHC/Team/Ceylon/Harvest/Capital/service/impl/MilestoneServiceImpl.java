@@ -20,6 +20,7 @@ import CHC.Team.Ceylon.Harvest.Capital.repository.ProjectRepository;
 import CHC.Team.Ceylon.Harvest.Capital.repository.UserRepository;
 import CHC.Team.Ceylon.Harvest.Capital.service.AuditLogService;
 import CHC.Team.Ceylon.Harvest.Capital.service.MilestoneService;
+import CHC.Team.Ceylon.Harvest.Capital.service.InvestorRoiService;
 import CHC.Team.Ceylon.Harvest.Capital.service.blockchain.BlockchainService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -49,6 +50,7 @@ public class MilestoneServiceImpl implements MilestoneService {
     private final ObjectMapper         objectMapper;
     private final AuditLogService      auditLogService;
     private final BlockchainService    blockchainService;
+    private final InvestorRoiService   investorRoiService;
 
     public MilestoneServiceImpl(
             MilestoneRepository  milestoneRepository,
@@ -58,7 +60,8 @@ public class MilestoneServiceImpl implements MilestoneService {
             InvestmentRepository investmentRepository,
             ObjectMapper         objectMapper,
             AuditLogService      auditLogService,
-            BlockchainService    blockchainService) {
+            BlockchainService    blockchainService,
+            InvestorRoiService   investorRoiService) {
         this.milestoneRepository  = milestoneRepository;
         this.userRepository       = userRepository;
         this.projectRepository    = projectRepository;
@@ -67,6 +70,7 @@ public class MilestoneServiceImpl implements MilestoneService {
         this.objectMapper         = objectMapper;
         this.auditLogService      = auditLogService;
         this.blockchainService    = blockchainService;
+        this.investorRoiService   = investorRoiService;
     }
 
     @Override
@@ -101,6 +105,7 @@ public class MilestoneServiceImpl implements MilestoneService {
 
         syncProgress(milestone);
         milestoneRepository.save(milestone);
+        investorRoiService.syncSnapshotsForLand(milestone.getLand().getLandId(), milestone.getMilestoneDate());
 
         // ── Record milestone approval on Polygon Amoy ─────────────────────────
         // For each investment in this farmer's land, post a milestone approval
